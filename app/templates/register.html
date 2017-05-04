@@ -1,0 +1,20 @@
+{% extends "_base.html" %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}注册{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>注册</h2>
+</div>
+<div class="col-md-4">
+    {% if username_flag %}
+    <h3 style="color:red;">此用户名已被占用，请重试。</h3>
+    {% endif %}
+    {% if database_flag %}
+    <h3 style="color:red;">在写入数据库时发生了严重错误，请重试。</h3>
+    {% endif %}
+    {{ wtf.quick_form(form) }}
+</div>
+{% endblock %}
