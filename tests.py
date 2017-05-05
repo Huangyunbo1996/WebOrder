@@ -2,9 +2,8 @@ import unittest
 from os.path import join, dirname, abspath
 from os import environ, system
 from app import create_app
-from flask import session
 from werkzeug.security import check_password_hash
-import requests
+from app.models import User
 import pymysql
 import threading
 import time
@@ -22,10 +21,8 @@ def init_db(sql_file_path):
 
 
 class WebOrderTestCase(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
-
         cls.app = create_app('testing')
         cls.app_context = cls.app.app_context()
         cls.app_context.push()
@@ -42,7 +39,6 @@ class WebOrderTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-
         # delete testing database
         conn = pymysql.Connect(**cls.app.config['MYSQL_CONNECT_ARGS'])
         curr = conn.cursor()
@@ -61,30 +57,78 @@ class WebOrderTestCase(unittest.TestCase):
         self.curr.close()
         self.conn.close()
 
+    # 测试主页访问
     def test_home_page(self):
-        recive = requests.get('http://localhost:5000/')
-        self.assertTrue('乐器销售网站' in recive.text)
+        c = self.app.test_client()
+        response = c.get('/', follow_redirects=True)
+        assert '乐器销售网站'.encode('utf-8') in response.data
 
     def test_register_page(self):
-        recive = requests.post('http://localhost:5000/register', data=dict(username='testuser',
-                                                          password='password_test',
-                                                          re_password='password_test'))
-        assert '注册' not in recive.text
-        #assert session['logined'] == True and session['username'] == 'testuser'
-        self.curr.execute('select password_hash from user where username = "\'testuser\'"')
+        # 测试注册成功
+        c = self.app.test_client()
+        with self.app.app_context():
+            response = c.post('/register', data=dict(username='testregisteruser',
+                                                     password='password_test',
+                                                     re_password='password_test'), follow_redirects=True)
+            assert '注册'.encode('utf-8') not in response.data and '乐器销售网站'.encode('utf-8') in response.data
+
+        # 测试注册用户密码是否被正确加密储存
+        self.curr.execute('select password_hash from user where username = "\'testregisteruser\'"')
         password_hash = self.curr.fetchone()
         assert password_hash is not None and \
                check_password_hash(password_hash[0].strip('\''), 'password_test') is True
 
-        recive = requests.post('http://localhost:5000/register', data=dict(username='testuser2',
-                                                          password='password_test',
-                                                          re_password='password_not_repeat'))
-        assert '重复密码与密码不一致' in recive.text
+        # 测试密码与重复密码不一致时的注册
+        with self.app.app_context():
+            response = c.post('/register', data=dict(username='testuser2',
+                                                     password='password_test',
+                                                     re_password='password_not_repeat'), follow_redirects=True)
+            assert '重复密码与密码不一致'.encode('utf-8') in response.data
 
-        recive = requests.post('http://localhost:5000/register', data=dict(username='testuser',
-                                                          password='password_test',
-                                                          re_password='password_test'))
-        assert '此用户名已被占用' in recive.text
+        # 测试注册用户名已被注册时的注册
+        with self.app.app_context():
+            response = c.post('/register', data=dict(username='testregisteruser',
+                                                     password='password_test',
+                                                     re_password='password_test'), follow_redirects=True)
+            assert '此用户名已被占用'.encode('utf-8') in response.data
+
+    def test_login_page(self):
+        with self.app.app_context():
+            newUser = User('testloginuser', 'testpassword')
+            newUser.saveToDb()
+
+        # 测试密码错误的登陆
+        c = self.app.test_client()
+        with self.app.app_context():
+            response = c.post('/login', data=dict(username='testloginuser',
+                                                  password='faultpassword'
+                                                  ), follow_redirects=True)
+            assert '用户名或密码错误，请重试。'.encode('utf-8') in response.data
+
+        # 测试密码正确的登陆
+        with self.app.app_context():
+            response = c.post('/login', data=dict(username='testloginuser',
+                                                  password='testpassword'
+                                                  ), follow_redirects=True)
+            assert '登陆'.encode('utf-8') not in response.data and '乐器销售网站'.encode('utf-8') in response.data
+
+    def test_admin_page(self):
+        # 测试没有登录管理员账号时访问管理页面
+        c = self.app.test_client()
+        response = c.get('/admin', follow_redirects=True)
+        assert '403'.encode('utf-8') in response.data
+
+        # 测试用错误的账号登陆管理员页面
+        c = self.app.test_client()
+        response = c.post('/adminLogin', data=dict(username='fault', password='fault'), follow_redirects=True)
+        assert '账号或密码错误。'.encode('utf-8') in response.data
+
+        # 测试用正确的账号登陆管理员页面
+        c = self.app.test_client()
+        response = c.post('/adminLogin', data=dict(
+            username=environ.get('weborder_admin_username'),
+            password=environ.get('weborder_admin_password')), follow_redirects=True)
+        assert '后台管理'.encode('utf-8') in response.data
 
 
 if __name__ == '__main__':
