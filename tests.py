@@ -2,9 +2,12 @@ import unittest
 from os.path import join, dirname, abspath
 from os import environ, system
 from app import create_app
-from flask import session,request
+from flask import session
 from werkzeug.security import check_password_hash
+from selenium import webdriver
 import pymysql
+import threading
+import time
 
 
 def init_db(sql_file_path):
@@ -19,14 +22,48 @@ def init_db(sql_file_path):
 
 
 class WebOrderTestCase(unittest.TestCase):
+    client = None
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.client = webdriver.Chrome()
+        except:
+            pass
+
+        if cls.client:
+            cls.app = create_app('testing')
+            cls.app_context = cls.app.app_context()
+            cls.app_context.push()
+
+        import logging
+        logger = logging.getLogger('werkzeug')
+        logger.setLevel('ERROR')
+
+        init_db(join(dirname(abspath(__file__)), 'Instruments_test.sql'))
+
+        threading.Thread(target=cls.app.run).start()
+
+        time.sleep(1)
+
+    def tearDownClass(cls):
+        cls.client.close()
+
+        # delete testing database
+        conn = pymysql.Connect(**cls.app.config['MYSQL_CONNECT_ARGS'])
+        curr = conn.cursor()
+        curr.execute('drop database weborder_test')
+        curr.close()
+        conn.close()
+
+        cls.app_context.pop()
+
     def setUp(self):
-        app = create_app('testing')
-        self.app = app.test_client()
-        self.conn = pymysql.Connect(**app.config['MYSQL_CONNECT_ARGS'])
-        self.curr = self.conn.cursor()
-        if not init_db(join(dirname(abspath(__file__)), 'Instruments_test.sql')):
-            print('测试数据库初始化失败。')
-            exit(0)
+        if not self.client:
+            self.skipTest('浏览器内核加载失败。')
+        else:
+            self.conn = pymysql.Connect(**self.app.config['MYSQL_CONNECT_ARGS'])
+            self.curr = self.conn.cursor()
 
     def tearDown(self):
         self.curr.close()
