@@ -4,7 +4,7 @@ from os import environ, system
 from app import create_app
 from flask import session
 from werkzeug.security import check_password_hash
-from selenium import webdriver
+import requests
 import pymysql
 import threading
 import time
@@ -22,19 +22,13 @@ def init_db(sql_file_path):
 
 
 class WebOrderTestCase(unittest.TestCase):
-    client = None
 
     @classmethod
     def setUpClass(cls):
-        try:
-            cls.client = webdriver.Chrome()
-        except:
-            pass
 
-        if cls.client:
-            cls.app = create_app('testing')
-            cls.app_context = cls.app.app_context()
-            cls.app_context.push()
+        cls.app = create_app('testing')
+        cls.app_context = cls.app.app_context()
+        cls.app_context.push()
 
         import logging
         logger = logging.getLogger('werkzeug')
@@ -46,8 +40,8 @@ class WebOrderTestCase(unittest.TestCase):
 
         time.sleep(1)
 
+    @classmethod
     def tearDownClass(cls):
-        cls.client.close()
 
         # delete testing database
         conn = pymysql.Connect(**cls.app.config['MYSQL_CONNECT_ARGS'])
@@ -59,40 +53,38 @@ class WebOrderTestCase(unittest.TestCase):
         cls.app_context.pop()
 
     def setUp(self):
-        if not self.client:
-            self.skipTest('浏览器内核加载失败。')
-        else:
-            self.conn = pymysql.Connect(**self.app.config['MYSQL_CONNECT_ARGS'])
-            self.curr = self.conn.cursor()
+        self.conn = pymysql.Connect(**self.app.config['MYSQL_CONNECT_ARGS'])
+        self.curr = self.conn.cursor()
+        self.curr.execute('use weborder_test')
 
     def tearDown(self):
         self.curr.close()
         self.conn.close()
 
-    def test_index(self):
-        recive = self.app.get('main.index')
-        assert '乐器销售网'.encode('utf-8') in recive.data
+    def test_home_page(self):
+        recive = requests.get('http://localhost:5000/')
+        self.assertTrue('乐器销售网站' in recive.text)
 
-    def test_register(self):
-        recive = self.app.post('/register', data=dict(username='testuser',
+    def test_register_page(self):
+        recive = requests.post('http://localhost:5000/register', data=dict(username='testuser',
                                                           password='password_test',
                                                           re_password='password_test'))
-        assert '注册'.encode('utf-8') not in recive.data
+        assert '注册' not in recive.text
         #assert session['logined'] == True and session['username'] == 'testuser'
-        self.curr.execute('select password_hash from user where username = "testuser"')
+        self.curr.execute('select password_hash from user where username = "\'testuser\'"')
         password_hash = self.curr.fetchone()
         assert password_hash is not None and \
                check_password_hash(password_hash[0].strip('\''), 'password_test') is True
 
-        recive = self.app.post('/register', data=dict(username='testuser2',
+        recive = requests.post('http://localhost:5000/register', data=dict(username='testuser2',
                                                           password='password_test',
                                                           re_password='password_not_repeat'))
-        assert '重复密码与密码不一致'.encode('utf-8') in recive.data
+        assert '重复密码与密码不一致' in recive.text
 
-        recive = self.app.post('/register', data=dict(username='testuser',
+        recive = requests.post('http://localhost:5000/register', data=dict(username='testuser',
                                                           password='password_test',
                                                           re_password='password_test'))
-        assert '此用户名已被占用'.encode('utf-8') in recive.data
+        assert '此用户名已被占用' in recive.text
 
 
 if __name__ == '__main__':
