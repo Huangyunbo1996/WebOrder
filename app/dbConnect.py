@@ -1,4 +1,4 @@
-from pymysql import Connect
+from pymysql import Connect,err
 from flask import g, current_app as app
 from .main import main
 from os import environ, system
@@ -35,6 +35,12 @@ def get_cursor():
 @main.teardown_request
 def close_db(error):
     if hasattr(g, 'cursor'):
-        g.cursor.close()
+        try:
+            g.cursor.close()
+        except err.Error as e:
+            pass
     if hasattr(g, 'conn'):
-        g.conn.close()
+        try:
+            g.conn.close()
+        except err.Error as e:
+            pass
