@@ -5,9 +5,9 @@
 <div class="page-header">
     <h2>乐器信息编辑</h2>
 </div>
-<div class="col-md-4">
+<div class="col-md-4 col-md-offset-4">
     {% if edit_flag %}
-    <h3 style="color:red;">修改信息时发生严重错误，具体信息请看日志。</h3>
+    <h3 style="color:red;">修改信息时发生严重错误，具体信息请查看日志。</h3>
     {% endif %}
     {{ wtf.quick_form(form) }}
 </div>

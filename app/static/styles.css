@@ -1,3 +1,11 @@
+div.page-header{
+    text-align: center;
+}
 div.mytable th,td{
     text-align: center;
+}
+div.add-instrument{
+    font-size: 16px;
+    text-align: center;
+    height: 40px;
 }
