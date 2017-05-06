@@ -1,0 +1,14 @@
+{% extends "_base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block title %}添加商品{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>添加新乐器</h2>
+</div>
+<div class="col-md-4 col-md-offset-4">
+    {% if flag %}
+    <h3 style="color:red;">新增乐器信息时发生严重错误，具体信息请查看日志。</h3>
+    {% endif %}
+    {{ wtf.quick_form(form) }}
+</div>
+{% endblock %}
