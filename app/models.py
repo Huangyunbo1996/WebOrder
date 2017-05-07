@@ -46,7 +46,7 @@ class Instrument:
                         (self.__Name, self.__Price, self.__Weight, self.__Description, self.__Transportation,
                          self.__ImagePath))
         except Exception as e:
-            dictConfig(current_app.config('LOGGING_CONFIG'))
+            dictConfig(current_app.config['LOGGING_CONFIG'])
             logger = logging.getLogger()
             logger.error(
                 "<'class:Instrument'>func_saveToDb:An error occurred while writing to the database instrument:%s" % e)

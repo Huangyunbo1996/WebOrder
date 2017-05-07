@@ -1,4 +1,4 @@
-from pymysql import Connect,err
+from pymysql import Connect, err
 from flask import g, current_app as app
 from .main import main
 from os import environ, system
@@ -37,10 +37,12 @@ def close_db(error):
     if hasattr(g, 'cursor'):
         try:
             g.cursor.close()
+            g.pop('cursor', None)
         except err.Error as e:
             pass
     if hasattr(g, 'conn'):
         try:
             g.conn.close()
+            g.pop('conn', None)
         except err.Error as e:
             pass
