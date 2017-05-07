@@ -1,4 +1,4 @@
-from flask import session,abort
+from flask import session, abort, redirect, url_for
 from functools import wraps
 
 
@@ -8,7 +8,7 @@ def admin_required(fn):
         if session.get('isAdmin'):
             return fn(*args,**kwargs)
         else:
-            abort(403)
+            return redirect(url_for('main.adminLogin'))
     return wrapper
 
 

@@ -97,7 +97,7 @@ class WebOrderTestCase(unittest.TestCase):
             newUser = User('testloginuser', 'testpassword')
             newUser.saveToDb()
 
-        # 测试密码错误的登陆
+        # 测试密码错误的登录
         c = self.app.test_client()
         with self.app.app_context():
             response = c.post('/login', data=dict(username='testloginuser',
@@ -105,25 +105,25 @@ class WebOrderTestCase(unittest.TestCase):
                                                   ), follow_redirects=True)
             assert '用户名或密码错误，请重试。'.encode('utf-8') in response.data
 
-        # 测试密码正确的登陆
+        # 测试密码正确的登录
         with self.app.app_context():
             response = c.post('/login', data=dict(username='testloginuser',
                                                   password='testpassword'
                                                   ), follow_redirects=True)
-            assert '登陆'.encode('utf-8') not in response.data and '乐器销售网站'.encode('utf-8') in response.data
+            assert '登录'.encode('utf-8') not in response.data and '乐器销售网站'.encode('utf-8') in response.data
 
     def test_admin_page(self):
         # 测试没有登录管理员账号时访问管理页面
         c = self.app.test_client()
         response = c.get('/admin', follow_redirects=True)
-        assert '403'.encode('utf-8') in response.data
+        assert '管理员登录'.encode('utf-8') in response.data
 
-        # 测试用错误的账号登陆管理员页面
+        # 测试用错误的账号登录管理员页面
         c = self.app.test_client()
         response = c.post('/adminLogin', data=dict(username='fault', password='fault'), follow_redirects=True)
         assert '账号或密码错误。'.encode('utf-8') in response.data
 
-        # 测试用正确的账号登陆管理员页面
+        # 测试用正确的账号登录管理员页面
         c = self.app.test_client()
         response = c.post('/adminLogin', data=dict(
             username=environ.get('weborder_admin_username'),
