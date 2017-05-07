@@ -113,20 +113,13 @@ def instrumentEdit(id):
     conn = get_conn()
     curr = conn.cursor()
     if form.validate_on_submit():
-        try:
-            curr.execute('''UPDATE instrument SET name = %s,price = %s,weight = %s,description = %s,
-                            transportation_cost = %s,image_path = %s WHERE id = %s''',
-                         (form.name.data, float(form.price.data), float(form.weight.data), form.description.data,
-                          float(form.transport_cost.data), form.image.data, id))
-        except Exception as e:
-            dictConfig(current_app.config['LOGGING_CONFIG'])
-            logger = logging.getLogger()
-            logger.error('func_instrumentEdit:An error occurred while writing to the database instrument:%s' % e)
+        thisInstrument = Instrument(form.name.data, float(form.price.data), float(form.weight.data), form.description.data,
+                          float(form.transport_cost.data), form.image.data)
+        if thisInstrument.modify(id):
+            return redirect(url_for('main.admin'))
+        else:
             edit_fail_flag = 1
             return render_template('instrumentEdit.html', form=form, edit_flag=edit_fail_flag)
-        else:
-            conn.commit()
-            return redirect(url_for('main.admin'))
     curr.execute('SELECT * FROM instrument WHERE id = "%s"', id)
     instrument_data = curr.fetchone()
     if instrument_data == None:
@@ -150,19 +143,11 @@ def addInstrument():
     curr = get_cursor()
     edit_fail_flag = 0
     if form.validate_on_submit():
-        try:
-            curr.execute(
-                '''INSERT INTO instrument(name,price,weight,description,
-                transportation_cost,image_path) VALUES(%s,%s,%s,%s,%s,%s)''',
-                (form.name.data, float(form.price.data), float(form.weight.data), form.description.data,
-                 float(form.transport_cost.data), form.image.data))
-        except Exception as e:
-            dictConfig(current_app.config['LOGGING_CONFIG'])
-            logger = logging.getLogger()
-            logger.error('func_addInstrument:An error occurred while writing to the database instrument:%s' % e)
+        newInstrument = Instrument(form.name.data, float(form.price.data), float(form.weight.data), form.description.data,
+                          float(form.transport_cost.data), form.image.data)
+        if newInstrument.saveToDb():
+            return redirect(url_for('main.admin'))
+        else:
             edit_fail_flag = 1
             return render_template('addInstrument.html', form=form, flag=edit_fail_flag)
-        else:
-            conn.commit()
-            return redirect(url_for('main.admin'))
     return render_template('addInstrument.html', form=form, flag=edit_fail_flag)
