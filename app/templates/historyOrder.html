@@ -1,5 +1,5 @@
 {% extends "_base.html" %}
-{% block title %}后台管理 - 乐器信息{% endblock %}
+{% block title %}后台管理 - 历史订单{% endblock %}
 {% block navbar %}
 <nav class="navbar navbar-default">
   <div class="container-fluid">
@@ -24,25 +24,22 @@
 </nav>
 {% endblock %}
 {% block content %}
-<div class="add-instrument">
-<a href="{{url_for('main.addInstrument')}}">添加新的乐器</a>
-</div>
 <div class="mytable">
     <table class="table table-striped">
         <tr>
             <th>编号</th>
-            <th>乐器名</th>
-            <th>价格</th>
-            <th>重量</th>
+            <th>用户名</th>
+            <th>订单总价</th>
+            <th>订单时间</th>
             <th></th>
         </tr>
-        {% for instrument in instruments %}
+        {% for order in orders %}
         <tr>
-            <td>{{instrument[0]}}</th>
-            <td>{{instrument[1]}}</th>
-            <td>{{instrument[2]}}</th>
-            <td>{{instrument[3]}}</th>
-            <td><a href="{{url_for('main.instrumentEdit',id=instrument[0])}}">编辑</a></td>
+            <td>{{order[0]}}</th>
+            <td>{{order[1]}}</th>
+            <td>{{order[2]}}</th>
+            <td>{{order[3]}}</th>
+            <td><a href="{{url_for('main.orderDetail',id=order[0])}}">详细</a></td>
         </tr>
         {% endfor %}
     </table>

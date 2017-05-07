@@ -60,7 +60,7 @@ def register():
     write_database_error_flag = 0  # 将新用户写入数据库时发生错误标记
     if form.validate_on_submit():
         cur = get_cursor()
-        cur.execute('SELECT * FROM user WHERE username = "%s"', form.username.data)
+        cur.execute('SELECT * FROM user WHERE username = %s', form.username.data)
         if cur.fetchone():
             username_already_used_flag = 1
             form.password.data = ''
@@ -105,6 +105,12 @@ def adminLogin():
     return render_template('adminLogin.html', form=form, flag=login_failed_flag)
 
 
+@main.route('/adminLogout')
+def adminLogout():
+    session.clear()
+    return redirect(url_for('main.index'))
+
+
 @main.route('/instrumentEdit/<int:id>', methods=['GET', 'POST'])
 @admin_required
 def instrumentEdit(id):
@@ -113,8 +119,9 @@ def instrumentEdit(id):
     conn = get_conn()
     curr = conn.cursor()
     if form.validate_on_submit():
-        thisInstrument = Instrument(form.name.data, float(form.price.data), float(form.weight.data), form.description.data,
-                          float(form.transport_cost.data), form.image.data)
+        thisInstrument = Instrument(form.name.data, float(form.price.data), float(form.weight.data),
+                                    form.description.data,
+                                    float(form.transport_cost.data), form.image.data)
         if thisInstrument.modify(id):
             return redirect(url_for('main.admin'))
         else:
@@ -143,11 +150,66 @@ def addInstrument():
     curr = get_cursor()
     edit_fail_flag = 0
     if form.validate_on_submit():
-        newInstrument = Instrument(form.name.data, float(form.price.data), float(form.weight.data), form.description.data,
-                          float(form.transport_cost.data), form.image.data)
+        newInstrument = Instrument(form.name.data, float(form.price.data), float(form.weight.data),
+                                   form.description.data,
+                                   float(form.transport_cost.data), form.image.data)
         if newInstrument.saveToDb():
             return redirect(url_for('main.admin'))
         else:
             edit_fail_flag = 1
             return render_template('addInstrument.html', form=form, flag=edit_fail_flag)
     return render_template('addInstrument.html', form=form, flag=edit_fail_flag)
+
+
+@main.route('/allUser')
+@admin_required
+def allUser():
+    # TODO show all user
+    cur = get_cursor()
+    cur.execute('''SELECT * FROM user''')
+    users = cur.fetchall()
+    users = [list(user) for user in users]
+    return render_template('allUser.html',users=users)
+
+@main.route('/historyOrder/<int:id>')
+@admin_required
+def historyOrder(id):
+    cur = get_cursor()
+    cur.execute('''SELECT ot.id,u.username,ot.totalprice,ot.datetime FROM `order`
+                        AS ot LEFT JOIN user_order AS uo ON ot.id=uo.order_id 
+                        LEFT JOIN user AS u ON uo.user_id=u.id WHERE u.id=%s''',id)
+    orders = cur.fetchall()
+    orders = [list(order) for order in orders]
+    return render_template('historyOrder.html', orders=orders)
+
+
+@main.route('/allOrder')
+@admin_required
+def allOrder():
+    cur = get_cursor()
+    cur.execute('''SELECT ot.id,u.username,ot.totalprice,ot.datetime FROM `order`
+                    AS ot LEFT JOIN user_order AS uo ON ot.id=uo.order_id 
+                    LEFT JOIN user AS u ON uo.user_id=u.id;''')
+    orders = cur.fetchall()
+    orders = [list(order) for order in orders]
+    return render_template('allOrder.html', orders=orders)
+
+
+@main.route('/orderDetail/<int:id>')
+@admin_required
+def orderDetail(id):
+    cur = get_cursor()
+    cur.execute('''SELECT ot.id,u.username,ot.totalprice,ot.datetime FROM `order`
+                    AS ot LEFT JOIN user_order AS uo ON ot.id=uo.order_id 
+                    LEFT JOIN user AS u ON uo.user_id=u.id WHERE ot.id=%s''',id)
+    orders = cur.fetchall()[0]
+    orders = list(orders)
+
+    cur.execute('''SELECT it.id,it.name,it.price,image_path FROM `order` AS ot LEFT JOIN 
+                    instrument_order AS io ON ot.id=io.order_id LEFT JOIN
+                    instrument AS it ON io.instrument_id=it.id WHERE
+                    ot.id=%s''',id)
+    instruments = cur.fetchall()
+    instruments = [list(instrument) for instrument in instruments]
+
+    return render_template('orderDetail.html',orders=orders,instruments=instruments)

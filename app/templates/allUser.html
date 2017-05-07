@@ -1,0 +1,46 @@
+{% extends "_base.html" %}
+{% block title %}后台管理 - 用户信息{% endblock %}
+{% block navbar %}
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"
+                aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+            <a class="navbar-brand" href="/">乐器销售网站</a>
+        </div>
+
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav">
+                <li><a href="{{url_for('main.admin')}}">乐器信息 </a></li>
+                <li><a href="{{url_for('main.allUser')}}">用户信息</a></li>
+                <li><a href="{{url_for('main.allOrder')}}">订单信息</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+{% endblock %} 
+{% block content %}
+<div class="mytable">
+    <table class="table table-striped">
+        <tr>
+            <th></th>
+            <th>编号</th>
+            <th>用户名</th>
+            <th></th>            
+        </tr>
+        {% for user in users %}
+        <tr>
+            <td></th>
+            <td>{{user[0]}}</th>
+            <td>{{user[1]}}</th>
+            <td><a href="{{url_for('main.historyOrder',id=user[0])}}">历史订单</a></th>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}
