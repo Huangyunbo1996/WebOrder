@@ -60,7 +60,7 @@ def register():
     write_database_error_flag = 0  # 将新用户写入数据库时发生错误标记
     if form.validate_on_submit():
         cur = get_cursor()
-        cur.execute('SELECT * FROM user WHERE username = %s', form.username.data)
+        cur.execute('SELECT * FROM user WHERE username = "%s"', form.username.data)
         if cur.fetchone():
             username_already_used_flag = 1
             form.password.data = ''
