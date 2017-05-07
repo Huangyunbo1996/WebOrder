@@ -37,14 +37,20 @@ class Instrument:
     def getImagePath(self):
         return self.__ImagePath
 
-    def saveToDb(self):
+    def saveToDb(self,id=None):
         from .dbConnect import get_cursor
         cur = get_cursor()
         try:
-            cur.execute('''INSERT INTO instrument(name,price,weight,description,
-                    transportation_cost,image_path) VALUES(%s,%s,%s,%s,%s,%s)''',
-                        (self.__Name, self.__Price, self.__Weight, self.__Description, self.__Transportation,
-                         self.__ImagePath))
+            if id:
+                cur.execute('''INSERT INTO instrument(id,name,price,weight,description,
+                                    transportation_cost,image_path) VALUES(%s,%s,%s,%s,%s,%s,%s)''',
+                            (id,self.__Name, self.__Price, self.__Weight, self.__Description, self.__Transportation,
+                             self.__ImagePath))
+            else:
+                cur.execute('''INSERT INTO instrument(name,price,weight,description,
+                        transportation_cost,image_path) VALUES(%s,%s,%s,%s,%s,%s)''',
+                            (self.__Name, self.__Price, self.__Weight, self.__Description, self.__Transportation,
+                             self.__ImagePath))
         except Exception as e:
             dictConfig(current_app.config['LOGGING_CONFIG'])
             logger = logging.getLogger()

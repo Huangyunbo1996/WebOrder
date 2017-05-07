@@ -133,16 +133,16 @@ class WebOrderTestCase(unittest.TestCase):
 
     def test_instrumentEdit_page(self):
         with self.app.app_context():
-            testInstrument1 = Instrument("测试乐器1", 100, 200, "测试描述", 10, "测试图片")
-            testInstrument1.saveToDb()
+            testInstrument1 = Instrument("测试乐器111", 100, 200, "测试描述", 10, "测试图片")
+            testInstrument1.saveToDb(id=111)
 
-            testInstrument2 = Instrument("测试乐器2", 100, 200, "测试描述", 10, "测试图片")
-            testInstrument2.saveToDb()
+            testInstrument2 = Instrument("测试乐器222", 100, 200, "测试描述", 10, "测试图片")
+            testInstrument2.saveToDb(id=222)
 
         # 测试在没有管理员权限时访问该页面
         c = self.app.test_client()
         with self.app.app_context():
-            response = c.get('/instrumentEdit/1', follow_redirects=True)
+            response = c.get('/instrumentEdit/111', follow_redirects=True)
             assert '管理员登录'.encode('utf-8') in response.data
 
         # 测试有管理员权限时访问不存在的商品页面
@@ -150,7 +150,7 @@ class WebOrderTestCase(unittest.TestCase):
         with self.app.app_context():
             c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
                                             password=environ.get('weborder_admin_password')))
-            response = c.get('/instrumentEdit/3')
+            response = c.get('/instrumentEdit/100')
             assert '404'.encode('utf-8') in response.data
 
         # 测试有管理员权限时访问存在的商品页面
@@ -158,7 +158,7 @@ class WebOrderTestCase(unittest.TestCase):
         with self.app.app_context():
             c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
                                             password=environ.get('weborder_admin_password')))
-            response = c.get('/instrumentEdit/1')
+            response = c.get('/instrumentEdit/111')
             assert '乐器信息编辑'.encode('utf-8') in response.data
 
         # 测试想要编辑的乐器是否能正确的在页面上显示
@@ -166,22 +166,42 @@ class WebOrderTestCase(unittest.TestCase):
         with self.app.app_context():
             c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
                                             password=environ.get('weborder_admin_password')))
-            response = c.get('/instrumentEdit/1')
-            assert '测试乐器1'.encode('utf-8') in response.data
-            response = c.get('/instrumentEdit/2')
-            assert '测试乐器2'.encode('utf-8') in response.data
+            response = c.get('/instrumentEdit/111')
+            assert '测试乐器111'.encode('utf-8') in response.data
+            response = c.get('/instrumentEdit/222')
+            assert '测试乐器222'.encode('utf-8') in response.data
 
         # 测试能否正确修改乐器信息
         c = self.app.test_client()
         with self.app.app_context():
             c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
                                             password=environ.get('weborder_admin_password')))
-            response = c.post('/instrumentEdit/1', data=dict(name='测试乐器3', price=100, weight=200,
+            response = c.post('/instrumentEdit/111', data=dict(name='测试乐器333', price=100, weight=200,
                                                              description='测试描述', transport_cost=300,
                                                              image='测试图片'), follow_redirects=True)
-            self.curr.execute('SELECT name FROM instrument WHERE id = 1')
+            self.curr.execute('SELECT name FROM instrument WHERE id = 111')
             instrument_edited_name = self.curr.fetchone()[0]
-            assert instrument_edited_name == '测试乐器3' and '后台管理'.encode('utf-8') in response.data
+            assert instrument_edited_name == '测试乐器333' and '后台管理'.encode('utf-8') in response.data
+
+    def test_addInstrument_page(self):
+        c = self.app.test_client()
+        with self.app.app_context():
+            c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
+                                            password=environ.get('weborder_admin_password')))
+
+            # 测试是否能添加正确的乐器信息
+            response = c.post('/addInstrument', data=dict(name='测试乐器', price=100, weight=200,
+                                                          description='测试描述', transport_cost=300,
+                                                          image='测试图片'), follow_redirects=True)
+            assert '测试乐器'.encode('utf-8') in response.data
+
+            # 测试是否能指出不合规的数据
+            response = c.post('/addInstrument', data=dict(name='测试乐器2', price='错误数据', weight='错误数据',
+                                                          description='测试描述', transport_cost='错误数据',
+                                                          image='测试图片'), follow_redirects=True)
+            assert '请输入正确的价格'.encode('utf-8') in response.data and \
+                    '请输入正确的重量'.encode('utf-8') in response.data and \
+                    '请输入正确的运输费用'.encode('utf-8') in response.data
 
 
 if __name__ == '__main__':
