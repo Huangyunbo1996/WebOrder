@@ -1,0 +1,11 @@
+{% extends "_base.html" %}
+{% block title %}页面走丢啦{% endblock %}
+{% block navbar %}{% endblock %}
+{% block content %}
+
+    <div class="jumbotron">
+        <h1 class="error-h1">404 NOT FOUND</h1>
+        <p class="error-p"><small>你访问了一个</small>见不得人<small>的页面</small></p>
+        <p class="error-p"><a class="btn btn-primary btn-lg" href="{{url_for('main.index')}}" role="button">回到首页</a></p>
+    </div>
+    {% endblock %}
