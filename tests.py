@@ -62,13 +62,11 @@ class WebOrderTestCase(unittest.TestCase):
         self.conn.close()
 
     # 测试主页访问
-    @print_func_info
     def test_home_page(self):
         c = self.app.test_client()
         response = c.get('/', follow_redirects=True)
         assert '乐器销售网站'.encode('utf-8') in response.data
 
-    @print_func_info
     def test_register_page(self):
         # 测试注册成功
         c = self.app.test_client()
@@ -98,7 +96,6 @@ class WebOrderTestCase(unittest.TestCase):
                                                      re_password='password_test'), follow_redirects=True)
             assert '此用户名已被占用'.encode('utf-8') in response.data
 
-    @print_func_info
     def test_login_page(self):
         with self.app.app_context():
             newUser = User('testloginuser', 'testpassword')
@@ -119,7 +116,6 @@ class WebOrderTestCase(unittest.TestCase):
                                                   ), follow_redirects=True)
             assert '登录'.encode('utf-8') not in response.data and '乐器销售网站'.encode('utf-8') in response.data
 
-    @print_func_info
     def test_admin_page(self):
         # 测试没有登录管理员账号时访问管理页面
         c = self.app.test_client()
@@ -138,7 +134,6 @@ class WebOrderTestCase(unittest.TestCase):
             password=environ.get('weborder_admin_password')), follow_redirects=True)
         assert '后台管理'.encode('utf-8') in response.data
 
-    @print_func_info
     def test_instrumentEdit_page(self):
         with self.app.app_context():
             testInstrument1 = Instrument(111, "测试乐器111", 100, 200, "测试描述", 10, "测试图片")
@@ -191,7 +186,6 @@ class WebOrderTestCase(unittest.TestCase):
             instrument_edited_name = self.curr.fetchone()[0]
             assert instrument_edited_name == '测试乐器333' and '后台管理'.encode('utf-8') in response.data
 
-    @print_func_info
     def test_addInstrument_page(self):
         c = self.app.test_client()
         with self.app.app_context():
@@ -212,7 +206,6 @@ class WebOrderTestCase(unittest.TestCase):
                    '请输入正确的重量'.encode('utf-8') in response.data and \
                    '请输入正确的运输费用'.encode('utf-8') in response.data
 
-    @print_func_info
     def test_allUser_page(self):
         with self.app.app_context():
             testuser1 = User('allUser_testuser_1', 'testpassword')
@@ -233,7 +226,6 @@ class WebOrderTestCase(unittest.TestCase):
         self.curr.execute('truncate table user')
         self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
-    @print_func_info
     def test_historyOrder_page(self):
         with self.app.app_context():
             testuser1 = User('historyOrder_testuser_1', 'testpassword')
@@ -276,6 +268,86 @@ class WebOrderTestCase(unittest.TestCase):
         self.curr.execute('truncate table `order`;')
         self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
+    def test_allOrder_page(self):
+        with self.app.app_context():
+            testuser1 = User('historyOrder_testuser_1', 'testpassword')
+            testuser1.saveToDb(user_id=66)
+            testuser2 = User('historyOrder_testuser_2', 'testpassword')
+            testuser2.saveToDb(user_id=666)
+            instrument1 = Instrument(self.generate_random_instrument_id(),
+                                     '测试乐器1', 100, 200, '测试描述1', 300, 'imagepath')
+            instrument1.saveToDb()
+            instrument2 = Instrument(self.generate_random_instrument_id(),
+                                     '测试乐器2', 200, 200, '测试描述2', 300, 'imagepath')
+            instrument2.saveToDb()
+            instrument3 = Instrument(self.generate_random_instrument_id(),
+                                     '测试乐器3', 300, 200, '测试描述3', 300, 'imagepath')
+            instrument3.saveToDb()
+            testuser1.addInstrumentToShoppingCraft(instrument1, instrument2)
+            order1_id = testuser1.payAllShoppingCraft()
+            testuser2.addInstrumentToShoppingCraft(instrument1, instrument3)
+            order2_id = testuser2.payAllShoppingCraft()
+            self.curr.execute("select totalprice from `order` where id=%s", order1_id)
+            order1_totalprice = self.curr.fetchone()[0]
+            self.curr.execute("select totalprice from `order` where id=%s", order2_id)
+            order2_totalprice = self.curr.fetchone()[0]
+
+            # 测试能否正确显示所有订单
+        c = self.app.test_client()
+        with self.app.app_context():
+            c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
+                                            password=environ.get('weborder_admin_password')))
+            response = c.get('/allOrder')
+            assert 'historyOrder_testuser_1'.encode('utf-8') in response.data and \
+                   'historyOrder_testuser_2'.encode('utf-8') in response.data and \
+                   str(order1_id).encode('utf-8') in response.data and \
+                   str(order2_id).encode('utf-8') in response.data and \
+                   '300'.encode('utf-8') in response.data and \
+                   '400'.encode('utf-8') in response.data
+
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
+        self.curr.execute('truncate table user;')
+        self.curr.execute('truncate table instrument;')
+        self.curr.execute('truncate table `order`;')
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
+
+    def test_orderDetail_page(self):
+        with self.app.app_context():
+            testuser1 = User('orderDetail_testuser_1', 'testpassword')
+            testuser1.saveToDb(user_id=66)
+            instrument1 = Instrument(self.generate_random_instrument_id(),
+                                     '测试乐器1', 100, 200, '测试描述1', 300, 'imagepath')
+            instrument1.saveToDb()
+            instrument2 = Instrument(self.generate_random_instrument_id(),
+                                     '测试乐器2', 200, 200, '测试描述2', 300, 'imagepath')
+            instrument2.saveToDb()
+            instrument3 = Instrument(self.generate_random_instrument_id(),
+                                     '测试乐器3', 300, 200, '测试描述3', 300, 'imagepath')
+            instrument3.saveToDb()
+            testuser1.addInstrumentToShoppingCraft(instrument1, instrument3)
+            orderId = testuser1.payAllShoppingCraft()
+            now = datetime.now()
+
+        c = self.app.test_client()
+        with self.app.app_context():
+            c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
+                                            password=environ.get('weborder_admin_password')))
+            orderDetail_url = '/orderDetail/' + str(orderId)
+            response = c.get(orderDetail_url)
+            assert str(orderId).encode('utf-8') in response.data
+            assert str(now.year).encode('utf-8') in response.data
+            assert str(now.day).encode('utf-8') in response.data
+            assert 'orderDetail_testuser_1'.encode('utf-8') in response.data
+            assert '400'.encode('utf-8') in response.data
+            assert '测试乐器1'.encode('utf-8') in response.data
+            assert '测试乐器3'.encode('utf-8') in response.data
+            assert '测试乐器2'.encode('utf-8') not in response.data
+
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
+        self.curr.execute('truncate table user;')
+        self.curr.execute('truncate table instrument;')
+        self.curr.execute('truncate table `order`;')
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
     def generate_random_instrument_id(self):
         now = datetime.now()
