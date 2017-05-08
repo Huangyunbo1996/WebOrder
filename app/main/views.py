@@ -8,6 +8,8 @@ from os import environ
 from ..decorators import admin_required, login_required
 import logging
 from logging.config import dictConfig
+from datetime import datetime
+from random import randint
 
 
 @main.route('/', methods=['GET', 'POST'])
@@ -119,10 +121,10 @@ def instrumentEdit(id):
     conn = get_conn()
     curr = conn.cursor()
     if form.validate_on_submit():
-        thisInstrument = Instrument(form.name.data, float(form.price.data), float(form.weight.data),
+        thisInstrument = Instrument(id, form.name.data, float(form.price.data), float(form.weight.data),
                                     form.description.data,
                                     float(form.transport_cost.data), form.image.data)
-        if thisInstrument.modify(id):
+        if thisInstrument.modify():
             return redirect(url_for('main.admin'))
         else:
             edit_fail_flag = 1
@@ -150,7 +152,9 @@ def addInstrument():
     curr = get_cursor()
     edit_fail_flag = 0
     if form.validate_on_submit():
-        newInstrument = Instrument(form.name.data, float(form.price.data), float(form.weight.data),
+        now = datetime.now()
+        id = int(str(int(now.timestamp() * pow(10, 6)))[-8:] + str(randint(1,9)))
+        newInstrument = Instrument(id, form.name.data, float(form.price.data), float(form.weight.data),
                                    form.description.data,
                                    float(form.transport_cost.data), form.image.data)
         if newInstrument.saveToDb():
@@ -169,7 +173,8 @@ def allUser():
     cur.execute('''SELECT * FROM user''')
     users = cur.fetchall()
     users = [list(user) for user in users]
-    return render_template('allUser.html',users=users)
+    return render_template('allUser.html', users=users)
+
 
 @main.route('/historyOrder/<int:id>')
 @admin_required
@@ -177,7 +182,7 @@ def historyOrder(id):
     cur = get_cursor()
     cur.execute('''SELECT ot.id,u.username,ot.totalprice,ot.datetime FROM `order`
                         AS ot LEFT JOIN user_order AS uo ON ot.id=uo.order_id 
-                        LEFT JOIN user AS u ON uo.user_id=u.id WHERE u.id=%s''',id)
+                        LEFT JOIN user AS u ON uo.user_id=u.id WHERE u.id=%s''', id)
     orders = cur.fetchall()
     orders = [list(order) for order in orders]
     return render_template('historyOrder.html', orders=orders)
@@ -201,15 +206,15 @@ def orderDetail(id):
     cur = get_cursor()
     cur.execute('''SELECT ot.id,u.username,ot.totalprice,ot.datetime FROM `order`
                     AS ot LEFT JOIN user_order AS uo ON ot.id=uo.order_id 
-                    LEFT JOIN user AS u ON uo.user_id=u.id WHERE ot.id=%s''',id)
+                    LEFT JOIN user AS u ON uo.user_id=u.id WHERE ot.id=%s''', id)
     orders = cur.fetchall()[0]
     orders = list(orders)
 
     cur.execute('''SELECT it.id,it.name,it.price,image_path FROM `order` AS ot LEFT JOIN 
                     instrument_order AS io ON ot.id=io.order_id LEFT JOIN
                     instrument AS it ON io.instrument_id=it.id WHERE
-                    ot.id=%s''',id)
+                    ot.id=%s''', id)
     instruments = cur.fetchall()
     instruments = [list(instrument) for instrument in instruments]
 
-    return render_template('orderDetail.html',orders=orders,instruments=instruments)
+    return render_template('orderDetail.html', orders=orders, instruments=instruments)
