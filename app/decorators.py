@@ -1,5 +1,6 @@
 from flask import session, abort, redirect, url_for
 from functools import wraps
+import logging
 
 
 def admin_required(fn):
@@ -19,4 +20,12 @@ def login_required(fn):
             return fn(*args, **kwargs)
         else:
             abort(403)
+    return wrapper
+
+def print_func_info(fn):
+    @wraps(fn)
+    def wrapper(*args,**kwargs):
+        logging.basicConfig(level=logging.INFO)
+        logging.info(fn.__name__)
+        return fn(*args,**kwargs)
     return wrapper
