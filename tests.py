@@ -5,9 +5,12 @@ from app import create_app
 from werkzeug.security import check_password_hash
 from app.models import User, Instrument, Order
 from flask import session, current_app
+from app.decorators import print_func_info
 import pymysql
 import threading
 import time
+from datetime import datetime
+from random import randint
 
 
 def init_db(sql_file_path):
@@ -59,11 +62,13 @@ class WebOrderTestCase(unittest.TestCase):
         self.conn.close()
 
     # 测试主页访问
+    @print_func_info
     def test_home_page(self):
         c = self.app.test_client()
         response = c.get('/', follow_redirects=True)
         assert '乐器销售网站'.encode('utf-8') in response.data
 
+    @print_func_info
     def test_register_page(self):
         # 测试注册成功
         c = self.app.test_client()
@@ -93,6 +98,7 @@ class WebOrderTestCase(unittest.TestCase):
                                                      re_password='password_test'), follow_redirects=True)
             assert '此用户名已被占用'.encode('utf-8') in response.data
 
+    @print_func_info
     def test_login_page(self):
         with self.app.app_context():
             newUser = User('testloginuser', 'testpassword')
@@ -113,6 +119,7 @@ class WebOrderTestCase(unittest.TestCase):
                                                   ), follow_redirects=True)
             assert '登录'.encode('utf-8') not in response.data and '乐器销售网站'.encode('utf-8') in response.data
 
+    @print_func_info
     def test_admin_page(self):
         # 测试没有登录管理员账号时访问管理页面
         c = self.app.test_client()
@@ -131,13 +138,14 @@ class WebOrderTestCase(unittest.TestCase):
             password=environ.get('weborder_admin_password')), follow_redirects=True)
         assert '后台管理'.encode('utf-8') in response.data
 
+    @print_func_info
     def test_instrumentEdit_page(self):
         with self.app.app_context():
-            testInstrument1 = Instrument("测试乐器111", 100, 200, "测试描述", 10, "测试图片")
-            testInstrument1.saveToDb(id=111)
+            testInstrument1 = Instrument(111, "测试乐器111", 100, 200, "测试描述", 10, "测试图片")
+            testInstrument1.saveToDb()
 
-            testInstrument2 = Instrument("测试乐器222", 100, 200, "测试描述", 10, "测试图片")
-            testInstrument2.saveToDb(id=222)
+            testInstrument2 = Instrument(222, "测试乐器222", 100, 200, "测试描述", 10, "测试图片")
+            testInstrument2.saveToDb()
 
         # 测试在没有管理员权限时访问该页面
         c = self.app.test_client()
@@ -177,12 +185,13 @@ class WebOrderTestCase(unittest.TestCase):
             c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
                                             password=environ.get('weborder_admin_password')))
             response = c.post('/instrumentEdit/111', data=dict(name='测试乐器333', price=100, weight=200,
-                                                             description='测试描述', transport_cost=300,
-                                                             image='测试图片'), follow_redirects=True)
+                                                               description='测试描述', transport_cost=300,
+                                                               image='测试图片'), follow_redirects=True)
             self.curr.execute('SELECT name FROM instrument WHERE id = 111')
             instrument_edited_name = self.curr.fetchone()[0]
             assert instrument_edited_name == '测试乐器333' and '后台管理'.encode('utf-8') in response.data
 
+    @print_func_info
     def test_addInstrument_page(self):
         c = self.app.test_client()
         with self.app.app_context():
@@ -200,8 +209,78 @@ class WebOrderTestCase(unittest.TestCase):
                                                           description='测试描述', transport_cost='错误数据',
                                                           image='测试图片'), follow_redirects=True)
             assert '请输入正确的价格'.encode('utf-8') in response.data and \
-                    '请输入正确的重量'.encode('utf-8') in response.data and \
-                    '请输入正确的运输费用'.encode('utf-8') in response.data
+                   '请输入正确的重量'.encode('utf-8') in response.data and \
+                   '请输入正确的运输费用'.encode('utf-8') in response.data
+
+    @print_func_info
+    def test_allUser_page(self):
+        with self.app.app_context():
+            testuser1 = User('allUser_testuser_1', 'testpassword')
+            testuser1.saveToDb(user_id=66)
+            testuser2 = User('allUser_testuser_2', 'testpassword')
+            testuser2.saveToDb(user_id=666)
+
+        # 测试能否显示所有用户
+        c = self.app.test_client()
+        with self.app.app_context():
+            c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
+                                            password=environ.get('weborder_admin_password')))
+            response = c.get('/allUser')
+            assert 'allUser_testuser_1'.encode('utf-8') in response.data and \
+                   'allUser_testuser_2'.encode('utf-8') in response.data
+
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
+        self.curr.execute('truncate table user')
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
+
+    @print_func_info
+    def test_historyOrder_page(self):
+        with self.app.app_context():
+            testuser1 = User('historyOrder_testuser_1', 'testpassword')
+            testuser1.saveToDb(user_id=66)
+            testuser2 = User('historyOrder_testuser_2', 'testpassword')
+            testuser2.saveToDb(user_id=666)
+            instrument1 = Instrument(self.generate_random_instrument_id(),
+                                     '测试乐器1', 100, 200, '测试描述1', 300, 'imagepath')
+            instrument1.saveToDb()
+            instrument2 = Instrument(self.generate_random_instrument_id(),
+                                     '测试乐器2', 200, 200, '测试描述2', 300, 'imagepath')
+            instrument2.saveToDb()
+            instrument3 = Instrument(self.generate_random_instrument_id(),
+                                     '测试乐器3', 300, 200, '测试描述3', 300, 'imagepath')
+            instrument3.saveToDb()
+            testuser1.addInstrumentToShoppingCraft(instrument1, instrument2)
+            order1_id = testuser1.payAllShoppingCraft()
+            testuser2.addInstrumentToShoppingCraft(instrument1, instrument3)
+            order2_id = testuser2.payAllShoppingCraft()
+            self.curr.execute("select totalprice from `order` where id=%s", order1_id)
+            order1_totalprice = self.curr.fetchone()[0]
+            self.curr.execute("select totalprice from `order` where id=%s", order2_id)
+            order2_totalprice = self.curr.fetchone()[0]
+
+        # 测试历史订单能否正确显示
+        c = self.app.test_client()
+        with self.app.app_context():
+            c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
+                                            password=environ.get('weborder_admin_password')))
+            response = c.get('/historyOrder/66')
+            assert 'historyOrder_testuser_1'.encode('utf-8') in response.data and str(order1_id).encode(
+                'utf-8') in response.data and '300'.encode('utf-8') in response.data
+            response = c.get('/historyOrder/666')
+            assert 'historyOrder_testuser_2'.encode('utf-8') in response.data and str(order2_id).encode(
+                'utf-8') in response.data and '400'.encode('utf-8') in response.data
+
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
+        self.curr.execute('truncate table user;')
+        self.curr.execute('truncate table instrument;')
+        self.curr.execute('truncate table `order`;')
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
+
+
+    def generate_random_instrument_id(self):
+        now = datetime.now()
+        instrument_id = int(str(int(now.timestamp() * pow(10, 6)))[-8:] + str(randint(1, 9)))
+        return instrument_id
 
 
 if __name__ == '__main__':
