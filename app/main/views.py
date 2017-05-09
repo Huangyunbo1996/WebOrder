@@ -20,7 +20,7 @@ def index():
     else:
         username = None
     curr = get_cursor()
-    curr.execute('''SELECT id,name,price,description,image_path FROM instrument''')
+    curr.execute('''SELECT id,name,price,description,image_path FROM instrument WHERE deleted=false''')
     instruments = curr.fetchall()
     instruments = [list(instrument) for instrument in instruments]
     return render_template('index.html', instruments=instruments, logined=logined, username=username)
@@ -87,13 +87,16 @@ def register():
 @admin_required
 def admin():
     curr = get_cursor()
-    curr.execute('SELECT * FROM instrument')
+    curr.execute('SELECT * FROM instrument WHERE deleted=false')
+    instrument_delete_failed_flag = 0
     temp_data = curr.fetchall()
     instruments = list()
     if temp_data != None:
         for instrument in temp_data:
             instruments.append(list(instrument))
-    return render_template('admin.html', instruments=instruments)
+    if session.get('instrument_delete_failed'):
+        instrument_delete_failed_flag = 1
+    return render_template('admin.html', instruments=instruments, delete_flag=instrument_delete_failed_flag)
 
 
 @main.route('/adminLogin', methods=['GET', 'POST'])
@@ -133,7 +136,7 @@ def instrumentEdit(id):
         else:
             edit_fail_flag = 1
             return render_template('instrumentEdit.html', form=form, edit_flag=edit_fail_flag)
-    curr.execute('SELECT * FROM instrument WHERE id = "%s"', id)
+    curr.execute('SELECT * FROM instrument WHERE id = %s and deleted=false', id)
     instrument_data = curr.fetchone()
     if instrument_data == None:
         abort(404)
@@ -146,6 +149,29 @@ def instrumentEdit(id):
         form.transport_cost.data = instrument_data[5]
         form.image.data = instrument_data[6]
     return render_template('instrumentEdit.html', form=form, edit_flag=edit_fail_flag)
+
+
+@main.route('/instrumentDelete/<int:id>')
+@admin_required
+def instrumentDelete(id):
+    curr = get_cursor()
+    try:
+        curr.execute('SELECT * FROM instrument WHERE id=%s', id)
+        instrument_need_delete = curr.fetchone()
+    except Exception as e:
+        dictConfig(current_app.config['LOGGING_CONFIG'])
+        logger = logging.getLogger()
+        logger.error(
+            "page_instrumentDelete:An error occurred while writing to the database instrument:%s" % e)
+        return False
+    if not instrument_need_delete:
+        abort(404)
+    else:
+        if Instrument.removeFromDb(id):
+            return redirect(url_for('main.admin'))
+        else:
+            session['instrument_delete_failed'] = True
+            return redirect(url_for('main.admin'))
 
 
 @main.route('/addInstrument', methods=['GET', 'POST'])
@@ -213,7 +239,7 @@ def orderDetail(id):
     orders = cur.fetchall()[0]
     orders = list(orders)
 
-    cur.execute('''SELECT it.id,it.name,it.price,image_path FROM `order` AS ot LEFT JOIN 
+    cur.execute('''SELECT it.id,it.name,it.price,it.image_path,it.deleted FROM `order` AS ot LEFT JOIN 
                     instrument_order AS io ON ot.id=io.order_id LEFT JOIN
                     instrument AS it ON io.instrument_id=it.id WHERE
                     ot.id=%s''', id)

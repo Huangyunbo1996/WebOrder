@@ -24,6 +24,9 @@
 </nav>
 {% endblock %}
 {% block content %}
+{% if delete_flag %}
+<h1 class="error-h1">删除失败，具体情况请查看错误日志。</h1>
+{% endif %}
 <div class="add-instrument">
 <a href="{{url_for('main.addInstrument')}}">添加新的乐器</a>
 </div>
