@@ -63,9 +63,24 @@ class WebOrderTestCase(unittest.TestCase):
 
     # 测试主页访问
     def test_home_page(self):
+        with self.app.test_client():
+            test_instrument_1_id = self.generate_random_instrument_id()
+            test_instrument_1 = Instrument(test_instrument_1_id, '测试乐器1', 100, 10, '测试描述', 5, 'image_path')
+            test_instrument_1.saveToDb()
+            test_instrument_2_id = self.generate_random_instrument_id()
+            test_instrument_2 = Instrument(test_instrument_2_id, '测试乐器2', 100, 10, '测试描述', 5, 'image_path')
+            test_instrument_2.saveToDb()
+            Instrument.removeFromDb(test_instrument_2_id)
+
         c = self.app.test_client()
         response = c.get('/', follow_redirects=True)
         assert '乐器销售网站'.encode('utf-8') in response.data
+        assert '测试乐器1'.encode('utf-8') in response.data
+        assert '测试乐器2'.encode('utf-8') not in response.data
+
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
+        self.curr.execute('truncate table instrument;')
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
     def test_register_page(self):
         # 测试注册成功
@@ -117,6 +132,14 @@ class WebOrderTestCase(unittest.TestCase):
             assert '登录'.encode('utf-8') not in response.data and '乐器销售网站'.encode('utf-8') in response.data
 
     def test_admin_page(self):
+        with self.app.test_client():
+            test_instrument_1_id = self.generate_random_instrument_id()
+            test_instrument_1 = Instrument(test_instrument_1_id, '测试乐器1', 100, 10, '测试描述', 5, 'image_path')
+            test_instrument_1.saveToDb()
+            test_instrument_2_id = self.generate_random_instrument_id()
+            test_instrument_2 = Instrument(test_instrument_2_id, '测试乐器2', 100, 10, '测试描述', 5, 'image_path')
+            test_instrument_2.saveToDb()
+
         # 测试没有登录管理员账号时访问管理页面
         c = self.app.test_client()
         response = c.get('/admin', follow_redirects=True)
@@ -133,6 +156,21 @@ class WebOrderTestCase(unittest.TestCase):
             username=environ.get('weborder_admin_username'),
             password=environ.get('weborder_admin_password')), follow_redirects=True)
         assert '后台管理'.encode('utf-8') in response.data
+
+        # 测试删除功能
+        c = self.app.test_client()
+        with self.app.app_context():
+            response = c.post('/adminLogin', data=dict(
+                username=environ.get('weborder_admin_username'),
+                password=environ.get('weborder_admin_password')), follow_redirects=True)
+            delete_url = '/instrumentDelete/' + str(test_instrument_2_id)
+            response = c.get(delete_url,follow_redirects=True)
+            assert '测试乐器1'.encode('utf-8') in response.data
+            assert '测试乐器2'.encode('utf-8') not in response.data
+
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
+        self.curr.execute('truncate table instrument;')
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
     def test_instrumentEdit_page(self):
         with self.app.app_context():
@@ -185,6 +223,19 @@ class WebOrderTestCase(unittest.TestCase):
             self.curr.execute('SELECT name FROM instrument WHERE id = 111')
             instrument_edited_name = self.curr.fetchone()[0]
             assert instrument_edited_name == '测试乐器333' and '后台管理'.encode('utf-8') in response.data
+
+        # 测试能否访问已被删除的商品编辑页面
+        c = self.app.test_client()
+        with self.app.app_context():
+            Instrument.removeFromDb(222)
+            c.post('/adminLogin', data=dict(username=environ.get('weborder_admin_username'),
+                                            password=environ.get('weborder_admin_password')))
+            response = c.get('/instrumentEdit/222', follow_redirects=True)
+            assert '404'.encode('utf-8') in response.data
+
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
+        self.curr.execute('truncate table instrument;')
+        self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
     def test_addInstrument_page(self):
         c = self.app.test_client()
@@ -321,11 +372,13 @@ class WebOrderTestCase(unittest.TestCase):
             instrument2 = Instrument(self.generate_random_instrument_id(),
                                      '测试乐器2', 200, 200, '测试描述2', 300, 'imagepath')
             instrument2.saveToDb()
-            instrument3 = Instrument(self.generate_random_instrument_id(),
+            instrument3_id = self.generate_random_instrument_id()
+            instrument3 = Instrument(instrument3_id,
                                      '测试乐器3', 300, 200, '测试描述3', 300, 'imagepath')
             instrument3.saveToDb()
             testuser1.addInstrumentToShoppingCraft(instrument1, instrument3)
             orderId = testuser1.payAllShoppingCraft()
+            Instrument.removeFromDb(instrument3_id)
             now = datetime.now()
 
         c = self.app.test_client()
@@ -340,7 +393,7 @@ class WebOrderTestCase(unittest.TestCase):
             assert 'orderDetail_testuser_1'.encode('utf-8') in response.data
             assert '400'.encode('utf-8') in response.data
             assert '测试乐器1'.encode('utf-8') in response.data
-            assert '测试乐器3'.encode('utf-8') in response.data
+            assert (str(instrument3_id)+'(此商品已下架)').encode('utf-8') in response.data
             assert '测试乐器2'.encode('utf-8') not in response.data
 
         self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
