@@ -21,3 +21,11 @@ p.error-p{
 p.price{
     color: red;
 }
+p.desc-p{
+    line-height: 20px;
+    height: 40px;
+    overflow: hidden;
+}
+div.col-md-2{
+    width:18%;margin-left:10px;margin-right:10px;
+}

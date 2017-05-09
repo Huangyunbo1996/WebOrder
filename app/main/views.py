@@ -23,7 +23,10 @@ def index():
     curr.execute('''SELECT id,name,price,description,image_path FROM instrument WHERE deleted=false''')
     instruments = curr.fetchall()
     instruments = [list(instrument) for instrument in instruments]
-    return render_template('index.html', instruments=instruments, logined=logined, username=username)
+    for i in range(len(instruments)):
+        instruments[i].append(i)
+    return render_template('index.html', instruments=instruments, logined=logined, username=username,
+                           per_line_nums=current_app.config['INSTRUMENT_NUM_PER_LINE'])
 
 
 @main.route('/login', methods=['GET', 'POST'])

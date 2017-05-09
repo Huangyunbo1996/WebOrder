@@ -3,6 +3,8 @@ import logging
 
 
 class Config:
+    INSTRUMENT_NUM_PER_LINE = 6
+    INSTRUMENT_NUM_PER_PAGE = 18
     MYSQL_CONNECT_ARGS = {
         'host': '127.0.0.1',
         'user': 'root',
