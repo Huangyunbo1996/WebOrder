@@ -61,6 +61,22 @@ class Instrument:
             cur.connection.commit()
             return True
 
+    @staticmethod
+    def removeFromDb(id):
+        from .dbConnect import get_cursor
+        curr = get_cursor()
+        try:
+            curr.execute('UPDATE instrument SET deleted=true WHERE id=%s', id)
+        except Exception as e:
+            dictConfig(current_app.config['LOGGING_CONFIG'])
+            logger = logging.getLogger()
+            logger.error(
+                "page_instrumentDelete:An error occurred while writing to the database instrument:%s" % e)
+            return False
+        else:
+            curr.connection.commit()
+            return True
+
     def modify(self):
         from .dbConnect import get_cursor
         cur = get_cursor()
