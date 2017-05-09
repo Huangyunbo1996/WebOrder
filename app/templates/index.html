@@ -3,5 +3,19 @@
 {% block title %}乐器销售网{% endblock %}
 
 {% block content %}
+{% for instrument in instruments %}
 
+  <div class="col-sm-6 col-md-2">
+    <div class="thumbnail" style="height:35%;">
+      <img src="{{instrument[4]}}">
+      <div class="caption">
+        <h3>{{instrument[1]}}</h3>
+        <p class="price">{{instrument[2]}}</p>
+        <p>{{instrument[3]}}</p>
+        <p><a href="#" class="btn btn-primary" role="button">加入购物车</a> <a href="#" class="btn btn-default" role="button">立即购买</a></p>
+      </div>
+    </div>
+  </div>
+
+{% endfor %}
 {% endblock %}

@@ -35,6 +35,7 @@
             <th>价格</th>
             <th>重量</th>
             <th></th>
+            <th></th>
         </tr>
         {% for instrument in instruments %}
         <tr>
@@ -43,6 +44,7 @@
             <td>{{instrument[2]}}</th>
             <td>{{instrument[3]}}</th>
             <td><a href="{{url_for('main.instrumentEdit',id=instrument[0])}}">编辑</a></td>
+            <td><a href="{{url_for('main.instrumentDelete',id=instrument[0])}}">删除</a></td>
         </tr>
         {% endfor %}
     </table>

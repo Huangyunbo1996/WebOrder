@@ -19,7 +19,11 @@ def index():
         username = session.get('username')
     else:
         username = None
-    return render_template('index.html', logined=logined, username=username)
+    curr = get_cursor()
+    curr.execute('''SELECT id,name,price,description,image_path FROM instrument''')
+    instruments = curr.fetchall()
+    instruments = [list(instrument) for instrument in instruments]
+    return render_template('index.html', instruments=instruments, logined=logined, username=username)
 
 
 @main.route('/login', methods=['GET', 'POST'])
@@ -153,7 +157,7 @@ def addInstrument():
     edit_fail_flag = 0
     if form.validate_on_submit():
         now = datetime.now()
-        id = int(str(int(now.timestamp() * pow(10, 6)))[-8:] + str(randint(1,9)))
+        id = int(str(int(now.timestamp() * pow(10, 6)))[-8:] + str(randint(1, 9)))
         newInstrument = Instrument(id, form.name.data, float(form.price.data), float(form.weight.data),
                                    form.description.data,
                                    float(form.transport_cost.data), form.image.data)
@@ -168,7 +172,6 @@ def addInstrument():
 @main.route('/allUser')
 @admin_required
 def allUser():
-    # TODO show all user
     cur = get_cursor()
     cur.execute('''SELECT * FROM user''')
     users = cur.fetchall()
