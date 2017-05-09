@@ -10,6 +10,7 @@ weight FLOAT NOT NULL,
 description VARCHAR(200),
 transportation_cost FLOAT NOT NULL,
 image_path varchar(150),
+deleted BOOLEAN DEFAULT false,
 PRIMARY KEY(id)
 ) DEFAULT CHARSET=utf8;
 
