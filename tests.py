@@ -259,10 +259,8 @@ class WebOrderTestCase(unittest.TestCase):
 
     def test_allUser_page(self):
         with self.app.app_context():
-            testuser1 = User('allUser_testuser_1', 'testpassword')
-            testuser1.saveToDb(user_id=66)
-            testuser2 = User('allUser_testuser_2', 'testpassword')
-            testuser2.saveToDb(user_id=666)
+            testuser1 = User('allUser_testuser_1', 'testpassword', id=66)
+            testuser2 = User('allUser_testuser_2', 'testpassword', id=666)
 
         # 测试能否显示所有用户
         c = self.app.test_client()
@@ -279,10 +277,8 @@ class WebOrderTestCase(unittest.TestCase):
 
     def test_historyOrder_page(self):
         with self.app.app_context():
-            testuser1 = User('historyOrder_testuser_1', 'testpassword')
-            testuser1.saveToDb(user_id=66)
-            testuser2 = User('historyOrder_testuser_2', 'testpassword')
-            testuser2.saveToDb(user_id=666)
+            testuser1 = User('historyOrder_testuser_1', 'testpassword', id=66)
+            testuser2 = User('historyOrder_testuser_2', 'testpassword', id=666)
             instrument1 = Instrument(self.generate_random_instrument_id(),
                                      '测试乐器1', 100, 200, '测试描述1', 300, 'imagepath')
             instrument1.saveToDb()
@@ -292,9 +288,11 @@ class WebOrderTestCase(unittest.TestCase):
             instrument3 = Instrument(self.generate_random_instrument_id(),
                                      '测试乐器3', 300, 200, '测试描述3', 300, 'imagepath')
             instrument3.saveToDb()
-            testuser1.addInstrumentToShoppingCraft(instrument1, instrument2)
+            instruments = [instrument1, instrument2]
+            testuser1.addInstrumentToShoppingCraft(instruments)
             order1_id = testuser1.payAllShoppingCraft()
-            testuser2.addInstrumentToShoppingCraft(instrument1, instrument3)
+            instruments = [instrument1, instrument3]
+            testuser2.addInstrumentToShoppingCraft(instruments)
             order2_id = testuser2.payAllShoppingCraft()
             self.curr.execute("select totalprice from `order` where id=%s", order1_id)
             order1_totalprice = self.curr.fetchone()[0]
@@ -317,14 +315,14 @@ class WebOrderTestCase(unittest.TestCase):
         self.curr.execute('truncate table user;')
         self.curr.execute('truncate table instrument;')
         self.curr.execute('truncate table `order`;')
+        self.curr.execute('truncate table shopping_craft;')
+        self.curr.execute('truncate table shoppingcraft_instrument;')
         self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
     def test_allOrder_page(self):
         with self.app.app_context():
-            testuser1 = User('historyOrder_testuser_1', 'testpassword')
-            testuser1.saveToDb(user_id=66)
-            testuser2 = User('historyOrder_testuser_2', 'testpassword')
-            testuser2.saveToDb(user_id=666)
+            testuser1 = User('historyOrder_testuser_1', 'testpassword', id=66)
+            testuser2 = User('historyOrder_testuser_2', 'testpassword', id=666)
             instrument1 = Instrument(self.generate_random_instrument_id(),
                                      '测试乐器1', 100, 200, '测试描述1', 300, 'imagepath')
             instrument1.saveToDb()
@@ -334,9 +332,11 @@ class WebOrderTestCase(unittest.TestCase):
             instrument3 = Instrument(self.generate_random_instrument_id(),
                                      '测试乐器3', 300, 200, '测试描述3', 300, 'imagepath')
             instrument3.saveToDb()
-            testuser1.addInstrumentToShoppingCraft(instrument1, instrument2)
+            instruments = [instrument1, instrument2]
+            testuser1.addInstrumentToShoppingCraft(instruments)
             order1_id = testuser1.payAllShoppingCraft()
-            testuser2.addInstrumentToShoppingCraft(instrument1, instrument3)
+            instruments = [instrument1, instrument3]
+            testuser2.addInstrumentToShoppingCraft(instruments)
             order2_id = testuser2.payAllShoppingCraft()
             self.curr.execute("select totalprice from `order` where id=%s", order1_id)
             order1_totalprice = self.curr.fetchone()[0]
@@ -360,12 +360,13 @@ class WebOrderTestCase(unittest.TestCase):
         self.curr.execute('truncate table user;')
         self.curr.execute('truncate table instrument;')
         self.curr.execute('truncate table `order`;')
+        self.curr.execute('truncate table shopping_craft;')
+        self.curr.execute('truncate table shoppingcraft_instrument;')
         self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
     def test_orderDetail_page(self):
         with self.app.app_context():
-            testuser1 = User('orderDetail_testuser_1', 'testpassword')
-            testuser1.saveToDb(user_id=66)
+            testuser1 = User('orderDetail_testuser_1', 'testpassword', id=66)
             instrument1 = Instrument(self.generate_random_instrument_id(),
                                      '测试乐器1', 100, 200, '测试描述1', 300, 'imagepath')
             instrument1.saveToDb()
@@ -376,7 +377,8 @@ class WebOrderTestCase(unittest.TestCase):
             instrument3 = Instrument(instrument3_id,
                                      '测试乐器3', 300, 200, '测试描述3', 300, 'imagepath')
             instrument3.saveToDb()
-            testuser1.addInstrumentToShoppingCraft(instrument1, instrument3)
+            instruments = [instrument1, instrument3]
+            testuser1.addInstrumentToShoppingCraft(instruments)
             orderId = testuser1.payAllShoppingCraft()
             Instrument.removeFromDb(instrument3_id)
             now = datetime.now()
@@ -400,6 +402,8 @@ class WebOrderTestCase(unittest.TestCase):
         self.curr.execute('truncate table user;')
         self.curr.execute('truncate table instrument;')
         self.curr.execute('truncate table `order`;')
+        self.curr.execute('truncate table shopping_craft;')
+        self.curr.execute('truncate table shoppingcraft_instrument;')
         self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
     def generate_random_instrument_id(self):

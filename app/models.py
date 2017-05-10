@@ -99,11 +99,8 @@ class Instrument:
 # 购物车
 # author:hyb
 class ShoppingCraft:
-    def __init__(self, id, *args):
-        if args == ([],):
-            self.__Instruments = list()
-        else:
-            self.__Instruments = args
+    def __init__(self, id, args):
+        self.__Instruments = args
         self.__TotalPrice = sum([instrument.getPrice()
                                  for instrument in self.__Instruments])
         self.__Id = id
@@ -114,7 +111,7 @@ class ShoppingCraft:
     def getTotalPrice(self):
         return self.__TotalPrice
 
-    def pay(self, user_id, *args):
+    def pay(self, user_id, args):
         pass
 
     def payAll(self, user_id):
@@ -139,14 +136,14 @@ class ShoppingCraft:
             curr.connection.commit()
             return orderId
 
-    def add(self, *args):
+    def add(self, args):
         for instrument in args:
             self.__Instruments.append(instrument)
         self.__TotalPrice = sum([instrument.getPrice()
                                  for instrument in self.__Instruments])
         self.saveToDb()
 
-    def remove(self, *args):
+    def remove(self, args):
         for instrument in args:
             self.__Instruments.pop(self.__Instruments.index(instrument))
         self.__TotalPrice = sum([instrument.getPrice()
@@ -193,8 +190,8 @@ class ShoppingCraft:
 # 订单
 # author:hyb
 class Order:
-    def __init__(self, *args):
-        self.__Instruments = list(args)
+    def __init__(self, args):
+        self.__Instruments = args
         self.__DateTime = datetime.datetime.now()
         self.__TotalPrice = sum([instrument.getPrice()
                                  for instrument in self.__Instruments])
@@ -212,23 +209,39 @@ class Order:
 # 用户
 # author:hyb
 class User:
-    def __init__(self, username, password):
+    def __init__(self, username, password, id=None):
         self.__username = username
         self.__password_hash = generate_password_hash(password)
+        self.__id = id
 
         # 获取改用或购物车下所有商品，用来初始化购物车
         from .dbConnect import get_cursor
         curr = get_cursor()
         curr.execute('SELECT id FROM user WHERE username = "%s"', self.__username)
-        user_id = curr.fetchone()[0]
-        if not curr.fetchone():
-            curr.execute('INSERT INTO shopping_craft(user_id) VALUES(%s)', user_id)
-            curr.connection.commit()
-        curr.execute('SELECT id FROM shopping_craft WHERE user_id=%s', user_id)
+        this_user = curr.fetchone()
+        # 如果user_id为空，则代表该用户还没有储存进数据库中，那么就需要对该用户进行存储
+        if this_user == None:
+            if self.__id == None:
+                self.saveToDb()
+            else:
+                self.saveToDb(self.__id)
+            try:
+                curr.execute('INSERT INTO shopping_craft(user_id) VALUES(%s)',self.getId())
+            except Exception as e:
+                dictConfig(current_app.config['LOGGING_CONFIG'])
+                logger = logging.getLogger()
+                logger.error(
+                    "<'class:User'>__init__:An error occurred while writing to the database:%s" % e)
+            else:
+                curr.connection.commit
+        else:
+            if this_user[0] != self.__id:
+                raise ValueError('该用户在数据库中存储的ID值与传入的ID值不一致。')
+        curr.execute('SELECT id FROM shopping_craft WHERE user_id=%s', self.getId())
         craft_id = curr.fetchone()[0]
         curr.execute('''SELECT st.instrument_id FROM user LEFT JOIN shopping_craft
                         ON user.id=shopping_craft.user_id LEFT JOIN shoppingcraft_instrument as st
-                        ON shopping_craft.id=st.shoppingcraft_id WHERE user.id=%s''', user_id)
+                        ON shopping_craft.id=st.shoppingcraft_id WHERE user.id=%s''', self.getId())
         instruments_ids = [x for x in curr.fetchall() if x != (None,)]
         instruments = list()
         if instruments_ids:
@@ -245,22 +258,25 @@ class User:
         return self.__username
 
     def getId(self):
-        from .dbConnect import get_cursor
-        curr = get_cursor()
-        curr.execute('SELECT id FROM user WHERE username = "%s"', self.__username)
-        return curr.fetchone()[0]
+        if self.__id != None:
+            return self.__id
+        else:
+            from .dbConnect import get_cursor
+            curr = get_cursor()
+            curr.execute('SELECT id FROM user WHERE username = "%s"', self.__username)
+            return curr.fetchone()[0]
 
-    def payShoppingCraft(self, *args):
-        return self.__shoppingCraft.pay(user_id=self.getId(), *args)
+    def payShoppingCraft(self, args):
+        return self.__shoppingCraft.pay(args, user_id=self.getId())
 
     def payAllShoppingCraft(self):
         return self.__shoppingCraft.payAll(user_id=self.getId())
 
-    def addInstrumentToShoppingCraft(self, *args):
-        self.__shoppingCraft.add(*args)
+    def addInstrumentToShoppingCraft(self, args):
+        self.__shoppingCraft.add(args)
 
-    def removeShoppingCraft(self, *args):
-        self.__shoppingCraft.remove(*args)
+    def removeShoppingCraft(self, args):
+        self.__shoppingCraft.remove(args)
 
     def removeAllShoppingCraft(self):
         self.__shoppingCraft.removeAll()
@@ -268,19 +284,23 @@ class User:
     def saveToDb(self, user_id=None):
         from .dbConnect import get_cursor
         cur = get_cursor()
-        try:
-            if user_id:
-                cur.execute('INSERT INTO user(id,username,password_hash) VALUES(%s,"%s","%s")'
-                            , (user_id, self.__username, self.__password_hash))
+        cur.execute('SELECT id FROM user WHERE username="%s"', self.__username)
+        # 如果这个用户已经在数据库中了，就不需要再次进行存储。
+        if not cur.fetchone():
+            try:
+                if user_id:
+                    cur.execute('INSERT INTO user(id,username,password_hash) VALUES(%s,"%s","%s")'
+                                , (user_id, self.__username, self.__password_hash))
+                else:
+                    cur.execute('INSERT INTO user(username,password_hash) VALUES("%s","%s")'
+                                , (self.__username, self.__password_hash))
+            except Exception as e:
+                dictConfig(current_app.config['LOGGING_CONFIG'])
+                logger = logging.getLogger()
+                logger.error(
+                    "<'class:User'>saveToDb:An error occurred while writing to the database:%s" % e)
+                return False
             else:
-                cur.execute('INSERT INTO user(username,password_hash) VALUES("%s","%s")'
-                            , (self.__username, self.__password_hash))
-        except Exception as e:
-            dictConfig(current_app.config['LOGGING_CONFIG'])
-            logger = logging.getLogger()
-            logger.error(
-                "<'class:User'>saveToDb:An error occurred while writing to the database:%s" % e)
-            return False
-        else:
-            cur.connection.commit()
-            return True
+                cur.connection.commit()
+                return True
+        return True
