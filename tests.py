@@ -164,7 +164,7 @@ class WebOrderTestCase(unittest.TestCase):
                 username=environ.get('weborder_admin_username'),
                 password=environ.get('weborder_admin_password')), follow_redirects=True)
             delete_url = '/instrumentDelete/' + str(test_instrument_2_id)
-            response = c.get(delete_url,follow_redirects=True)
+            response = c.get(delete_url, follow_redirects=True)
             assert '测试乐器1'.encode('utf-8') in response.data
             assert '测试乐器2'.encode('utf-8') not in response.data
 
@@ -395,7 +395,7 @@ class WebOrderTestCase(unittest.TestCase):
             assert 'orderDetail_testuser_1'.encode('utf-8') in response.data
             assert '400'.encode('utf-8') in response.data
             assert '测试乐器1'.encode('utf-8') in response.data
-            assert (str(instrument3_id)+'(此商品已下架)').encode('utf-8') in response.data
+            assert (str(instrument3_id) + '(此商品已下架)').encode('utf-8') in response.data
             assert '测试乐器2'.encode('utf-8') not in response.data
 
         self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
@@ -405,6 +405,34 @@ class WebOrderTestCase(unittest.TestCase):
         self.curr.execute('truncate table shopping_craft;')
         self.curr.execute('truncate table shoppingcraft_instrument;')
         self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
+
+    def test_addInstrumentToCraft_page(self):
+        with self.app.app_context():
+            testuser1 = User('test_add_craft_user_1', 'testpassword')
+            instrument1_id = self.generate_random_instrument_id()
+            instrument1 = Instrument(instrument1_id, '测试商品1', 100, 200, '测试描述', 100, 'www.test.com')
+            instrument1.saveToDb()
+            instrument2_id = self.generate_random_instrument_id()
+            instrument2 = Instrument(instrument2_id, '测试商品2', 100, 200, '测试描述', 100, 'www.test.com')
+            instrument2.saveToDb()
+
+        # 测试能否正确加入购物车
+        c = self.app.test_client()
+        with self.app.app_context():
+            c.post('/login', data=dict(username='test_add_craft_user_1', password='testpassword'))
+            url = '/addInstrumentToCraft/' + str(instrument1_id)
+            response = c.get(url, follow_redirects=True)
+            assert '成功添加至购物车'.encode('utf-8') in response.data
+            url = '/addInstrumentToCraft/' + str(instrument2_id)
+            response = c.get(url, follow_redirects=True)
+            assert '成功添加至购物车'.encode('utf-8') in response.data
+
+            self.curr.execute('SELECT id FROM shopping_craft WHERE user_id=%s', testuser1.getId())
+            craft_id = self.curr.fetchone()[0]
+            self.curr.execute('SELECT instrument_id FROM shoppingcraft_instrument WHERE shoppingcraft_id=%s', craft_id)
+            instrumens_id = [id[0] for id in self.curr.fetchall()]
+            assert instrument1_id in instrumens_id
+            assert instrument2_id in instrumens_id
 
     def generate_random_instrument_id(self):
         now = datetime.now()

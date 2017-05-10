@@ -19,7 +19,7 @@ def login_required(fn):
         if session.get('logined'):
             return fn(*args, **kwargs)
         else:
-            abort(403)
+            return redirect(url_for('main.login'))
     return wrapper
 
 def print_func_info(fn):

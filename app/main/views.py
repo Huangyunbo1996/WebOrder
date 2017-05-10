@@ -267,7 +267,7 @@ def addInstrumentToCraft(id):
         this_user = User(this_user_name, 'not_important')
         instrument = Instrument(this_instrument[0],this_instrument[1],this_instrument[2],
                                 this_instrument[3],this_instrument[4],this_instrument[5],this_instrument[6])
-        if this_user.addInstrumentToShoppingCraft(instrument):
+        if this_user.addInstrumentToShoppingCraft([instrument]):
             session['addToCraft'] = True
             return redirect(url_for('main.index'))
         else:

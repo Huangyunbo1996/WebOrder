@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import datetime
 from flask import current_app
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 from logging.config import dictConfig
 import logging
 from datetime import datetime
@@ -141,7 +141,7 @@ class ShoppingCraft:
             self.__Instruments.append(instrument)
         self.__TotalPrice = sum([instrument.getPrice()
                                  for instrument in self.__Instruments])
-        self.saveToDb()
+        return self.saveToDb()
 
     def remove(self, args):
         for instrument in args:
@@ -161,8 +161,9 @@ class ShoppingCraft:
         try:
             curr.execute('''SELECT instrument_id FROM shoppingcraft_instrument
                             WHERE shoppingcraft_id=%s''', self.__Id)
-            all_in_database_instrument_id = curr.fetchall()
-            all_in_database_instrument_id = [instrument_id for instrument_id in all_in_database_instrument_id]
+            all_in_database_instrument_id = [instrument_id for instrument_id in curr.fetchall()
+                                             if instrument_id != (None,)]
+            all_in_database_instrument_id = [instrument_id[0] for instrument_id in all_in_database_instrument_id]
             all_in_self_instrument_id = [instrument.getId() for instrument in self.__Instruments]
             all_in_database_instrument_id_set = set(all_in_database_instrument_id)
             all_in_self_instrument_id_set = set(all_in_self_instrument_id)
@@ -175,7 +176,7 @@ class ShoppingCraft:
                                 VALUES(%s,%s)''', (self.__Id, instrument_id))
             for instrument_id in need_remove_to_database:
                 curr.execute('''DELETE FROM shoppingcraft_instrument WHERE
-                                shoppingcraft_id=%s AND instrument_id=%s''', self.__Id, instrument_id)
+                                shoppingcraft_id=%s AND instrument_id=%s''', (self.__Id, instrument_id))
         except Exception as e:
             dictConfig(current_app.config['LOGGING_CONFIG'])
             logger = logging.getLogger()
@@ -226,16 +227,16 @@ class User:
             else:
                 self.saveToDb(self.__id)
             try:
-                curr.execute('INSERT INTO shopping_craft(user_id) VALUES(%s)',self.getId())
+                curr.execute('INSERT INTO shopping_craft(user_id) VALUES(%s)', self.getId())
             except Exception as e:
                 dictConfig(current_app.config['LOGGING_CONFIG'])
                 logger = logging.getLogger()
                 logger.error(
                     "<'class:User'>__init__:An error occurred while writing to the database:%s" % e)
             else:
-                curr.connection.commit
+                curr.connection.commit()
         else:
-            if this_user[0] != self.__id:
+            if self.__id != None and this_user[0] != self.__id:
                 raise ValueError('该用户在数据库中存储的ID值与传入的ID值不一致。')
         curr.execute('SELECT id FROM shopping_craft WHERE user_id=%s', self.getId())
         craft_id = curr.fetchone()[0]
@@ -273,7 +274,7 @@ class User:
         return self.__shoppingCraft.payAll(user_id=self.getId())
 
     def addInstrumentToShoppingCraft(self, args):
-        self.__shoppingCraft.add(args)
+        return self.__shoppingCraft.add(args)
 
     def removeShoppingCraft(self, args):
         self.__shoppingCraft.remove(args)
