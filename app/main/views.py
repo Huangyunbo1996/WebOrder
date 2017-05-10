@@ -19,6 +19,9 @@ def index():
         username = session.get('username')
     else:
         username = None
+    addToCraftFlag = session.get('addToCraft')
+    if hasattr(session,'addToCraft'):
+        session.pop('addToCraft')
     curr = get_cursor()
     curr.execute('''SELECT id,name,price,description,image_path FROM instrument WHERE deleted=false''')
     instruments = curr.fetchall()
@@ -26,7 +29,7 @@ def index():
     for i in range(len(instruments)):
         instruments[i].append(i)
     return render_template('index.html', instruments=instruments, logined=logined, username=username,
-                           per_line_nums=current_app.config['INSTRUMENT_NUM_PER_LINE'])
+                           per_line_nums=current_app.config['INSTRUMENT_NUM_PER_LINE'], addCraftFlag=addToCraftFlag)
 
 
 @main.route('/login', methods=['GET', 'POST'])
@@ -99,6 +102,7 @@ def admin():
             instruments.append(list(instrument))
     if session.get('instrument_delete_failed'):
         instrument_delete_failed_flag = 1
+        session.pop('instrument_delete_failed')
     return render_template('admin.html', instruments=instruments, delete_flag=instrument_delete_failed_flag)
 
 
@@ -250,3 +254,30 @@ def orderDetail(id):
     instruments = [list(instrument) for instrument in instruments]
 
     return render_template('orderDetail.html', orders=orders, instruments=instruments)
+
+
+@main.route('/addInstrumentToCraft/<int:id>')
+@login_required
+def addInstrumentToCraft(id):
+    cur = get_cursor()
+    cur.execute('SELECT * FROM instrument WHERE id=%s AND deleted=false',id)
+    this_instrument = cur.fetchone()
+    if this_instrument:
+        this_user_name = session.get('username')
+        this_user = User(this_user_name, 'not_important')
+        instrument = Instrument(this_instrument[0],this_instrument[1],this_instrument[2],
+                                this_instrument[3],this_instrument[4],this_instrument[5],this_instrument[6])
+        if this_user.addInstrumentToShoppingCraft(instrument):
+            session['addToCraft'] = True
+            return redirect(url_for('main.index'))
+        else:
+            session['addToCraft'] = False
+            return redirect(url_for('main.index'))
+    else:
+        abort(404)
+
+
+@main.route('/buyNow/<int:id>')
+@login_required
+def buyNow(id):
+    pass

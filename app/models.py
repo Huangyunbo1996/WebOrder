@@ -99,10 +99,14 @@ class Instrument:
 # 购物车
 # author:hyb
 class ShoppingCraft:
-    def __init__(self, *args):
-        self.__Instruments = list(args)
+    def __init__(self, id, *args):
+        if args == ([],):
+            self.__Instruments = list()
+        else:
+            self.__Instruments = args
         self.__TotalPrice = sum([instrument.getPrice()
                                  for instrument in self.__Instruments])
+        self.__Id = id
 
     def getAllInstruments(self):
         return self.__Instruments
@@ -140,12 +144,50 @@ class ShoppingCraft:
             self.__Instruments.append(instrument)
         self.__TotalPrice = sum([instrument.getPrice()
                                  for instrument in self.__Instruments])
+        self.saveToDb()
 
     def remove(self, *args):
-        pass
+        for instrument in args:
+            self.__Instruments.pop(self.__Instruments.index(instrument))
+        self.__TotalPrice = sum([instrument.getPrice()
+                                 for instrument in self.__Instruments])
+        self.saveToDb()
 
     def removeAll(self):
-        pass
+        self.__Instruments = list()
+        self.__TotalPrice = 0
+        self.saveToDb()
+
+    def saveToDb(self):
+        from .dbConnect import get_cursor
+        curr = get_cursor()
+        try:
+            curr.execute('''SELECT instrument_id FROM shoppingcraft_instrument
+                            WHERE shoppingcraft_id=%s''', self.__Id)
+            all_in_database_instrument_id = curr.fetchall()
+            all_in_database_instrument_id = [instrument_id for instrument_id in all_in_database_instrument_id]
+            all_in_self_instrument_id = [instrument.getId() for instrument in self.__Instruments]
+            all_in_database_instrument_id_set = set(all_in_database_instrument_id)
+            all_in_self_instrument_id_set = set(all_in_self_instrument_id)
+            # 在数据库中的数据而不在本类中的数据说明是要删除的数据
+            # 在本类中的数据而不在数据库中的数据说明时要添加的数据
+            need_save_to_database = all_in_self_instrument_id_set - all_in_database_instrument_id_set
+            need_remove_to_database = all_in_database_instrument_id_set - all_in_self_instrument_id_set
+            for instrument_id in need_save_to_database:
+                curr.execute('''INSERT INTO shoppingcraft_instrument(shoppingcraft_id,instrument_id)
+                                VALUES(%s,%s)''', (self.__Id, instrument_id))
+            for instrument_id in need_remove_to_database:
+                curr.execute('''DELETE FROM shoppingcraft_instrument WHERE
+                                shoppingcraft_id=%s AND instrument_id=%s''', self.__Id, instrument_id)
+        except Exception as e:
+            dictConfig(current_app.config['LOGGING_CONFIG'])
+            logger = logging.getLogger()
+            logger.error(
+                "<'class:ShoppingCraft'>func_saveToDb:An error occurred while writing to the database:%s" % e)
+            return False
+        else:
+            curr.connection.commit()
+            return True
 
 
 # 订单
@@ -173,7 +215,31 @@ class User:
     def __init__(self, username, password):
         self.__username = username
         self.__password_hash = generate_password_hash(password)
-        self.__shoppingCraft = ShoppingCraft()
+
+        # 获取改用或购物车下所有商品，用来初始化购物车
+        from .dbConnect import get_cursor
+        curr = get_cursor()
+        curr.execute('SELECT id FROM user WHERE username = "%s"', self.__username)
+        user_id = curr.fetchone()[0]
+        if not curr.fetchone():
+            curr.execute('INSERT INTO shopping_craft(user_id) VALUES(%s)', user_id)
+            curr.connection.commit()
+        curr.execute('SELECT id FROM shopping_craft WHERE user_id=%s', user_id)
+        craft_id = curr.fetchone()[0]
+        curr.execute('''SELECT st.instrument_id FROM user LEFT JOIN shopping_craft
+                        ON user.id=shopping_craft.user_id LEFT JOIN shoppingcraft_instrument as st
+                        ON shopping_craft.id=st.shoppingcraft_id WHERE user.id=%s''', user_id)
+        instruments_ids = [x for x in curr.fetchall() if x != (None,)]
+        instruments = list()
+        if instruments_ids:
+            for instrument_id in instruments_ids:
+                curr.execute('SELECT * FROM instrument WHERE id=%s and deleted=false', instrument_id[0])
+                this_instrument_data = curr.fetchone()
+                this_instrument = Instrument(this_instrument_data[0], this_instrument_data[1], this_instrument_data[2],
+                                             this_instrument_data[3], this_instrument_data[4], this_instrument_data[5],
+                                             this_instrument_data[6])
+                instruments.append(this_instrument)
+        self.__shoppingCraft = ShoppingCraft(craft_id, instruments)
 
     def getUsername(self):
         return self.__username

@@ -28,6 +28,12 @@ password_hash varchar(128) NOT NULL,
 PRIMARY KEY(id)
 ) DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS shopping_craft(
+id INT NOT NULL AUTO_INCREMENT,
+user_id INT NOT NULL,
+PRIMARY KEY(id)
+) DEFAULT CHARSET=utf8;
+
 CREATE TABLE IF NOT EXISTS `instrument_order`(
 id INT NOT NULL AUTO_INCREMENT,
 instrument_id INT NOT NULL,
@@ -43,5 +49,14 @@ user_id INT NOT NULL,
 order_id INT NOT NULL,
 FOREIGN KEY(user_id) REFERENCES user(id) on delete cascade on update cascade,
 FOREIGN KEY(order_id) REFERENCES `order`(id) on delete cascade on update cascade,
+PRIMARY KEY(id)
+) DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS shoppingcraft_instrument(
+id INT NOT NULL AUTO_INCREMENT,
+shoppingcraft_id INT NOT NULL,
+instrument_id INT NOT NULL,
+FOREIGN KEY(shoppingcraft_id) REFERENCES shopping_craft(id) on delete cascade on update cascade,
+FOREIGN KEY(instrument_id) REFERENCES instrument(id) on delete cascade on update cascade,
 PRIMARY KEY(id)
 ) DEFAULT CHARSET=utf8;

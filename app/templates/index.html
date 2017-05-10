@@ -3,9 +3,15 @@
 {% block title %}乐器销售网{% endblock %}
 
 {% block content %}
+{% if addCraftFlag == True %}
+<h1 class="error-h1">成功添加至购物车。</h1>
+{% endif %}
+{% if addCraftFlag == False %}
+<h1 class="error-h1">添加至购物车失败。</h1>
+{% endif %}
 {% for instrument in instruments %}
 
-{% if instrument[5]%per_line_nums==0 %}
+{% if instrument[5] % per_line_nums == 0 %}
 <div>
 {% endif %}
 
@@ -16,12 +22,14 @@
         <h3>{{instrument[1]}}</h3>
         <p class="price">{{instrument[2]}}</p>
         <p class="desc-p">{{instrument[3]}}</p>
-        <p><a href="#" class="btn btn-primary" role="button">加入购物车</a> <a href="#" class="btn btn-default" role="button">立即购买</a></p>
+        <p><a href="{{url_for('main.addInstrumentToCraft',id=instrument[0])}}" 
+        class="btn btn-primary" role="button">加入购物车</a> 
+        <a href="{{url_for('main.buyNow',id=instrument[0])}}" class="btn btn-default" role="button">立即购买</a></p>
       </div>
     </div>
   </div>
 
-{% if instrument[5]%per_line_nums==0 %}
+{% if instrument[5] % per_line_nums == 0 %}
 <div>
   {% endif %}
 
