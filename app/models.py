@@ -119,6 +119,8 @@ class ShoppingCraft:
         curr = get_cursor()
         now = datetime.now()
         orderId = int(str((int(now.timestamp() * pow(10, 6))))[-8:])
+        total_price = sum([instrument.getPrice()
+                                 for instrument in args])
         try:
             curr.execute('''INSERT INTO `order`(id,datetime,totalprice) VALUES(%s,%s,%s)''',
                          (orderId, now, self.__TotalPrice))

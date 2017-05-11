@@ -217,6 +217,50 @@ def allUser():
     return render_template('allUser.html', users=users)
 
 
+@main.route('/myOrder')
+@login_required
+def myOrder():
+    username = session.get('username')
+    this_user = User(username, 'not_important')
+    curr = get_cursor()
+    curr.execute('''SELECT ot.id,u.username,ot.totalprice,ot.datetime FROM `order`
+                        AS ot LEFT JOIN user_order AS uo ON ot.id=uo.order_id 
+                        LEFT JOIN user AS u ON uo.user_id=u.id WHERE u.id=%s''', this_user.getId())
+    orders = curr.fetchall()
+    orders = [list(order) for order in orders]
+    return render_template('myOrder.html', orders=orders)
+
+
+@main.route('/myOrderDetail/<int:id>')
+@login_required
+def myOrderDetail(id):
+    username = session.get('username')
+    this_user = User(username, 'not_important')
+
+    cur = get_cursor()
+    cur.execute('''SELECT ot.id FROM `order`
+                        AS ot LEFT JOIN user_order AS uo ON ot.id=uo.order_id 
+                        LEFT JOIN user AS u ON uo.user_id=u.id WHERE u.id=%s''', this_user.getId())
+    this_user_all_orders = [order[0] for order in cur.fetchall()]
+    if id not in this_user_all_orders:
+        abort(403)
+
+    cur.execute('''SELECT ot.id,u.username,ot.totalprice,ot.datetime FROM `order`
+                        AS ot LEFT JOIN user_order AS uo ON ot.id=uo.order_id 
+                        LEFT JOIN user AS u ON uo.user_id=u.id WHERE ot.id=%s''', id)
+    orders = cur.fetchall()[0]
+    orders = list(orders)
+
+    cur.execute('''SELECT it.id,it.name,it.price,it.image_path,it.deleted FROM `order` AS ot LEFT JOIN 
+                        instrument_order AS io ON ot.id=io.order_id LEFT JOIN
+                        instrument AS it ON io.instrument_id=it.id WHERE
+                        ot.id=%s''', id)
+    instruments = cur.fetchall()
+    instruments = [list(instrument) for instrument in instruments]
+
+    return render_template('orderDetail.html', orders=orders, instruments=instruments)
+
+
 @main.route('/historyOrder/<int:id>')
 @admin_required
 def historyOrder(id):
@@ -290,7 +334,7 @@ def shoppingCraft():
     instruments_in_shopping_craft = this_user.getShoppingCraft().getAllInstruments()
     instrumnets_nums = len(instruments_in_shopping_craft)
     return render_template('shoppingCraft.html', instruments=instruments_in_shopping_craft,
-                           logined=True, username=username,str=str)
+                           logined=True, username=username, str=str)
 
 
 @main.route('/removeFromCart/<int:id>')
@@ -306,7 +350,7 @@ def removeFromCart(id):
     abort(404)
 
 
-@main.route('/pay',methods=['GET','POST'])
+@main.route('/pay', methods=['GET', 'POST'])
 @login_required
 def pay():
     username = session.get('username')
