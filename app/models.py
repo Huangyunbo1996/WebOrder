@@ -111,6 +111,9 @@ class ShoppingCraft:
     def getTotalPrice(self):
         return self.__TotalPrice
 
+    def getId(self):
+        return self.__Id
+
     def pay(self, user_id, args):
         pass
 
@@ -148,7 +151,7 @@ class ShoppingCraft:
             self.__Instruments.pop(self.__Instruments.index(instrument))
         self.__TotalPrice = sum([instrument.getPrice()
                                  for instrument in self.__Instruments])
-        self.saveToDb()
+        return self.saveToDb()
 
     def removeAll(self):
         self.__Instruments = list()
@@ -267,6 +270,9 @@ class User:
             curr.execute('SELECT id FROM user WHERE username = "%s"', self.__username)
             return curr.fetchone()[0]
 
+    def getShoppingCraft(self):
+        return self.__shoppingCraft
+
     def payShoppingCraft(self, args):
         return self.__shoppingCraft.pay(args, user_id=self.getId())
 
@@ -277,7 +283,7 @@ class User:
         return self.__shoppingCraft.add(args)
 
     def removeShoppingCraft(self, args):
-        self.__shoppingCraft.remove(args)
+        return self.__shoppingCraft.remove(args)
 
     def removeAllShoppingCraft(self):
         self.__shoppingCraft.removeAll()

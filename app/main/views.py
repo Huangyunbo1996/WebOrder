@@ -20,7 +20,7 @@ def index():
     else:
         username = None
     addToCraftFlag = session.get('addToCraft')
-    if hasattr(session,'addToCraft'):
+    if 'addToCraft' in session:
         session.pop('addToCraft')
     curr = get_cursor()
     curr.execute('''SELECT id,name,price,description,image_path FROM instrument WHERE deleted=false''')
@@ -125,6 +125,11 @@ def adminLogin():
 def adminLogout():
     session.clear()
     return redirect(url_for('main.index'))
+
+
+@main.route('/instrumentDetail/<int:id>')
+def instrumentDetail(id):
+    pass
 
 
 @main.route('/instrumentEdit/<int:id>', methods=['GET', 'POST'])
@@ -260,13 +265,13 @@ def orderDetail(id):
 @login_required
 def addInstrumentToCraft(id):
     cur = get_cursor()
-    cur.execute('SELECT * FROM instrument WHERE id=%s AND deleted=false',id)
+    cur.execute('SELECT * FROM instrument WHERE id=%s AND deleted=false', id)
     this_instrument = cur.fetchone()
     if this_instrument:
         this_user_name = session.get('username')
         this_user = User(this_user_name, 'not_important')
-        instrument = Instrument(this_instrument[0],this_instrument[1],this_instrument[2],
-                                this_instrument[3],this_instrument[4],this_instrument[5],this_instrument[6])
+        instrument = Instrument(this_instrument[0], this_instrument[1], this_instrument[2],
+                                this_instrument[3], this_instrument[4], this_instrument[5], this_instrument[6])
         if this_user.addInstrumentToShoppingCraft([instrument]):
             session['addToCraft'] = True
             return redirect(url_for('main.index'))
@@ -275,6 +280,36 @@ def addInstrumentToCraft(id):
             return redirect(url_for('main.index'))
     else:
         abort(404)
+
+
+@main.route('/shoppingCraft')
+@login_required
+def shoppingCraft():
+    username = session.get('username')
+    this_user = User(username, 'not_important')
+    instruments_in_shopping_craft = this_user.getShoppingCraft().getAllInstruments()
+    instrumnets_nums = len(instruments_in_shopping_craft)
+    return render_template('shoppingCraft.html', instruments=instruments_in_shopping_craft,
+                           logined=True, username=username,str=str)
+
+
+@main.route('/removeFromCart/<int:id>')
+@login_required
+def removeFromCart(id):
+    username = session.get('username')
+    this_user = User(username, 'not_important')
+    instruments_in_shopping_craft = this_user.getShoppingCraft().getAllInstruments()
+    for instrument in instruments_in_shopping_craft:
+        if instrument.getId() == id:
+            this_user.removeShoppingCraft([instrument])
+            return redirect(url_for('main.shoppingCraft'))
+    abort(404)
+
+
+@main.route('/pay',methods=['GET','POST'])
+@login_required
+def pay():
+    pass
 
 
 @main.route('/buyNow/<int:id>')
