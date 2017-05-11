@@ -1,5 +1,5 @@
 from . import main
-from flask import url_for, render_template, g, redirect, session, current_app, abort
+from flask import url_for, render_template, g, redirect, session, current_app, abort, request
 from ..models import Instrument, ShoppingCraft, Order, User
 from .forms import LoginForm, RegisterForm, AdminForm, InstrumentForm
 from ..dbConnect import get_cursor, connect_db, get_conn
@@ -309,7 +309,18 @@ def removeFromCart(id):
 @main.route('/pay',methods=['GET','POST'])
 @login_required
 def pay():
-    pass
+    username = session.get('username')
+    this_user = User(username, 'not_important')
+    num = len(this_user.getShoppingCraft().getAllInstruments())
+    checkboxs_name = list()
+    need_pay_instruments = list()
+    for i in range(num):
+        checkboxs_name.append('checkbox' + str(i))
+    for checkbox in checkboxs_name:
+        if request.form.get(checkbox) == 'on':
+            need_pay_instruments.append(this_user.getShoppingCraft().getAllInstruments()[int(checkbox[-1:])])
+    this_user.payShoppingCraft(need_pay_instruments)
+    return redirect(url_for('main.shoppingCraft'))
 
 
 @main.route('/buyNow/<int:id>')

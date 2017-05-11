@@ -115,7 +115,28 @@ class ShoppingCraft:
         return self.__Id
 
     def pay(self, user_id, args):
-        pass
+        from .dbConnect import get_cursor
+        curr = get_cursor()
+        now = datetime.now()
+        orderId = int(str((int(now.timestamp() * pow(10, 6))))[-8:])
+        try:
+            curr.execute('''INSERT INTO `order`(id,datetime,totalprice) VALUES(%s,%s,%s)''',
+                         (orderId, now, self.__TotalPrice))
+            curr.execute('''INSERT INTO user_order(user_id,order_id) VALUES(%s,%s)''', (user_id, orderId))
+            for instrument in args:
+                curr.execute('''INSERT INTO instrument_order(instrument_id,order_id) VALUES(%s,%s)''',
+                             (instrument.getId(), orderId))
+        except Exception as e:
+            dictConfig(current_app.config['LOGGING_CONFIG'])
+            logger = logging.getLogger()
+            logger.error(
+                "<'class:ShoppingCraft'>func_payAll:An error occurred while writing to the database:%s" % e)
+            return False
+        else:
+            curr.connection.commit()
+            self.__Instruments = [instrument for instrument in self.__Instruments if instrument not in args]
+            self.saveToDb()
+            return orderId
 
     def payAll(self, user_id):
         from .dbConnect import get_cursor
@@ -137,6 +158,7 @@ class ShoppingCraft:
             return False
         else:
             curr.connection.commit()
+            del self.__Instruments[:]
             return orderId
 
     def add(self, args):
@@ -274,7 +296,7 @@ class User:
         return self.__shoppingCraft
 
     def payShoppingCraft(self, args):
-        return self.__shoppingCraft.pay(args, user_id=self.getId())
+        return self.__shoppingCraft.pay(self.getId(), args)
 
     def payAllShoppingCraft(self):
         return self.__shoppingCraft.payAll(user_id=self.getId())
