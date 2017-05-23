@@ -1,0 +1,58 @@
+{% extends "_base.html" %} 
+{% block title %}商品详情{% endblock %} 
+{% block navbar %}
+{% if isAdmin %}
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">乐器销售网站</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        <li><a href="{{url_for('main.admin')}}">乐器信息 </a></li>
+        <li><a href="{{url_for('main.allUser')}}">用户信息</a></li>
+        <li><a href="{{url_for('main.allOrder')}}">订单信息</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+{% else %}
+{{super()}}
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="show-instrument">
+    <div class="img-show-instrument">
+    <img src="{{instrument[6]}}">
+    </div>
+    <div class="show-instrument-right">
+        <div class="name-show-instrument">
+            <h2>{{instrument[1]}}</h2>
+        </div>
+        <div class="desc-show-instrument">
+            <p>{{instrument[4]}}</p>
+        </div>
+        <div class="price-show-instrument">
+            <p>价格: <span>{{instrument[2]}}</span> 元</p>
+        </div>
+        <div class="weight-show-instrument">
+            <p>重量: {{instrument[3]}} Kg</p>
+        </div>
+        <div class="transcost-show-instrument">
+            <p>运费: {{instrument[5]}} 元</p>
+        </div>
+        {% if not isAdmin %}
+        <div class="buybtn-show-instrument">
+            <p><a href="{{url_for('main.addInstrumentToCraft',id=instrument[0])}}" class="btn btn-primary" role="button">加入购物车</a> 
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

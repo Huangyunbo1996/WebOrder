@@ -24,9 +24,9 @@
         <li><a href="{{url_for('main.shoppingCraft')}}">购物车</a></li>
         <li><a href="{{url_for('main.myOrder')}}">我的订单</a></li>
       </ul>
-      <form class="navbar-form navbar-left">
+      <form class="navbar-form navbar-left" action="{{url_for('main.search')}}" method="post">
         <div class="form-group">
-          <input type="text" class="form-control" placeholder="乐器">
+          <input type="text" class="form-control" name="instrumentName" placeholder="乐器">
         </div>
         <button type="submit" class="btn btn-primary">搜索乐器</button>
       </form>

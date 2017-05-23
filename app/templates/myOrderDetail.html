@@ -1,0 +1,31 @@
+{% extends "_base.html" %} {% block title %}后台管理 - 订单详情{% endblock %} 
+{% block content %}
+<div class="mytable">
+    <table class="table table-striped">
+        <tr>
+            <th>订单号:{{orders[0]}}</th>
+            <th>下单时间:{{orders[3]}}</th>
+            <th>用户:{{orders[1]}}</th>
+            <th>总价:{{orders[2]}}</th>
+        </tr>
+        <tr>
+            <th></th>
+            <th>商品编号</th>
+            <th>名称</th>
+            <th>价格</th>
+        </tr>
+        {% for instrument in instruments %}
+        <tr>
+            <td style="width:15%;">
+                <a href="{{url_for('main.instrumentDetail',id=instrument[0])}}">
+            <img src="{{instrument[3]}}" height="100" width="100">
+                </a>
+            </td>
+            <td>{{instrument[0]}}{%if instrument[4]%}(此商品已下架){% endif %}</th>
+            <td>{{instrument[1]}}</th>
+            <td>{{instrument[2]}}</th>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+ {% endblock %}

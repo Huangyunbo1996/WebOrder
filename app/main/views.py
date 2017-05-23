@@ -129,7 +129,17 @@ def adminLogout():
 
 @main.route('/instrumentDetail/<int:id>')
 def instrumentDetail(id):
-    pass
+    logined = session.get('logined')
+    username = session.get('username')
+    isAdmin = session.get('isAdmin')
+    curr = get_cursor()
+    curr.execute('SELECT * FROM instrument WHERE id=%s and deleted=false', id)
+    this_instrument = curr.fetchone()
+    if this_instrument == None:
+        abort(404)
+    else:
+        return render_template('instrumentDetail.html', instrument=list(this_instrument),
+                               logined=logined, isAdmin=isAdmin, username=username)
 
 
 @main.route('/instrumentEdit/<int:id>', methods=['GET', 'POST'])
@@ -220,6 +230,7 @@ def allUser():
 @main.route('/myOrder')
 @login_required
 def myOrder():
+    logined = session.get('logined')
     username = session.get('username')
     this_user = User(username, 'not_important')
     curr = get_cursor()
@@ -228,12 +239,13 @@ def myOrder():
                         LEFT JOIN user AS u ON uo.user_id=u.id WHERE u.id=%s''', this_user.getId())
     orders = curr.fetchall()
     orders = [list(order) for order in orders]
-    return render_template('myOrder.html', orders=orders)
+    return render_template('myOrder.html', orders=orders, logined=logined, username=username)
 
 
 @main.route('/myOrderDetail/<int:id>')
 @login_required
 def myOrderDetail(id):
+    logined = session.get('logined')
     username = session.get('username')
     this_user = User(username, 'not_important')
 
@@ -258,7 +270,8 @@ def myOrderDetail(id):
     instruments = cur.fetchall()
     instruments = [list(instrument) for instrument in instruments]
 
-    return render_template('orderDetail.html', orders=orders, instruments=instruments)
+    return render_template('myOrderDetail.html', orders=orders, instruments=instruments, logined=logined,
+                           username=username)
 
 
 @main.route('/historyOrder/<int:id>')
@@ -371,3 +384,25 @@ def pay():
 @login_required
 def buyNow(id):
     pass
+
+
+@main.route('/search', methods=['GET', 'POST'])
+def search():
+    logined = session.get('logined')
+    if logined:
+        username = session.get('username')
+    else:
+        username = None
+    addToCraftFlag = session.get('addToCraft')
+    if 'addToCraft' in session:
+        session.pop('addToCraft')
+    instrumentName = request.form.get('instrumentName')
+    curr = get_cursor()
+    curr.execute('SELECT id,name,price,description,image_path FROM instrument WHERE name Like %s AND deleted=false',
+                 ('%' + instrumentName + '%'))
+    instruments = curr.fetchall()
+    instruments = [list(instrument) for instrument in instruments]
+    for i in range(len(instruments)):
+        instruments[i].append(i)
+    return render_template('search.html', instruments=instruments, logined=logined, username=username,
+                           per_line_nums=current_app.config['INSTRUMENT_NUM_PER_LINE'], addCraftFlag=addToCraftFlag)

@@ -426,6 +426,8 @@ class WebOrderTestCase(unittest.TestCase):
             url = '/addInstrumentToCraft/' + str(instrument2_id)
             response = c.get(url, follow_redirects=True)
             assert '成功添加至购物车'.encode('utf-8') in response.data
+            response = c.get('/addInstrumentToCraft/999', follow_redirects=True)
+            assert '404'.encode('utf-8') in response.data
 
             self.curr.execute('SELECT id FROM shopping_craft WHERE user_id=%s', testuser1.getId())
             craft_id = self.curr.fetchone()[0]
@@ -433,6 +435,94 @@ class WebOrderTestCase(unittest.TestCase):
             instrumens_id = [id[0] for id in self.curr.fetchall()]
             assert instrument1_id in instrumens_id
             assert instrument2_id in instrumens_id
+
+    # def test_shoppingCraft_page(self):
+    #     with self.app.app_context():
+    #         testuser1 = User('test_shoppingCraft_user_1', 'test_password')
+    #         test_instrument_1_id = self.generate_random_instrument_id()
+    #         test_instrument_1 = Instrument(test_instrument_1_id, '测试商品1', 100, 200, '测试描述', 100, 'www.test.com')
+    #         test_instrument_1.saveToDb()
+    #         test_instrument_2_id = self.generate_random_instrument_id()
+    #         test_instrument_2 = Instrument(test_instrument_2_id, '测试商品2', 100, 200, '测试描述', 100, 'www.test.com')
+    #         test_instrument_2.saveToDb()
+    #         test_instrument_3_id = self.generate_random_instrument_id()
+    #         test_instrument_3 = Instrument(test_instrument_3_id, '测试商品3', 100, 200, '测试描述', 100, 'www.test.com')
+    #         test_instrument_3.saveToDb()
+    #
+    #     c = self.app.test_client()
+    #     with self.app.app_context():
+    #         c.post('/login', data=dict(username='test_shoppingCraft_user_1', password='test_password'))
+    #         url = '/addInstrumentToCraft/' + str(test_instrument_1_id)
+    #         c.get(url)
+    #         url = '/addInstrumentToCraft/' + str(test_instrument_2_id)
+    #         c.get(url)
+    #         url = '/addInstrumentToCraft/' + str(test_instrument_3_id)
+    #         c.get(url)
+    #         response = c.get('/shoppingCraft')
+    #         assert '测试商品1'.encode('utf-8') in response.data
+    #         assert '测试商品2'.encode('utf-8') in response.data
+    #         assert '测试商品3'.encode('utf-8') in response.data
+    #
+    #         url = '/removeFromCart/' + str(test_instrument_3_id)
+    #         response = c.get(url, follow_redirects=True)
+    #         assert '测试商品3'.encode('utf-8') not in response.data
+    #
+    #         self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
+    #         self.curr.execute('truncate table user;')
+    #         self.curr.execute('truncate table instrument;')
+    #         self.curr.execute('truncate table shopping_craft;')
+    #         self.curr.execute('truncate table shoppingcraft_instrument;')
+    #         self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
+    #
+    # def test_pay_page(self):
+    #     with self.app.app_context():
+    #         testuser1 = User('test_shoppingCraft_user_1', 'test_password')
+    #         test_instrument_1_id = self.generate_random_instrument_id()
+    #         test_instrument_1 = Instrument(test_instrument_1_id, '测试商品1', 100, 200, '测试描述', 100, 'www.test.com')
+    #         test_instrument_1.saveToDb()
+    #         test_instrument_2_id = self.generate_random_instrument_id()
+    #         test_instrument_2 = Instrument(test_instrument_2_id, '测试商品2', 100, 200, '测试描述', 100, 'www.test.com')
+    #         test_instrument_2.saveToDb()
+    #         test_instrument_3_id = self.generate_random_instrument_id()
+    #         test_instrument_3 = Instrument(test_instrument_3_id, '测试商品3', 100, 200, '测试描述', 100, 'www.test.com')
+    #         test_instrument_3.saveToDb()
+    #
+    #     c = self.app.test_client()
+    #     with self.app.app_context():
+    #         c.post('/login', data=dict(username='test_shoppingCraft_user_1', password='test_password'))
+    #         url = '/addInstrumentToCraft/' + str(test_instrument_1_id)
+    #         c.get(url)
+    #         url = '/addInstrumentToCraft/' + str(test_instrument_2_id)
+    #         c.get(url)
+    #         url = '/addInstrumentToCraft/' + str(test_instrument_3_id)
+    #         c.get(url)
+    #         response = c.get('/pay', follow_redirects=True)
+    #         assert '测试商品1'.encode('utf-8') not in response.data
+    #         assert '测试商品2'.encode('utf-8') not in response.data
+    #         assert '测试商品3'.encode('utf-8') not in response.data
+    #         self.curr.execute('''SELECT ot.id,u.username,ot.totalprice,ot.datetime FROM `order`
+    #                                 AS ot LEFT JOIN user_order AS uo ON ot.id=uo.order_id
+    #                                 LEFT JOIN user AS u ON uo.user_id=u.id WHERE u.id=%s''', testuser1.getId())
+    #         order_id = self.curr.fetchone()[0]
+    #         self.curr.execute('''SELECT it.id,it.name,it.price,it.image_path,it.deleted FROM `order` AS ot LEFT JOIN
+    #                                 instrument_order AS io ON ot.id=io.order_id LEFT JOIN
+    #                                 instrument AS it ON io.instrument_id=it.id WHERE
+    #                                 ot.id=%s''', order_id)
+    #         instruments = self.curr.fetchall()
+    #         instruments_name = [instrument[1] for instrument in instruments]
+    #         assert '测试商品1' in instruments_name
+    #         assert '测试商品2' in instruments_name
+    #         assert '测试商品3' in instruments_name
+    #
+    #         self.curr.execute('SET FOREIGN_KEY_CHECKS = 0;')
+    #         self.curr.execute('truncate table user;')
+    #         self.curr.execute('truncate table instrument;')
+    #         self.curr.execute('truncate table `order`;')
+    #         self.curr.execute('truncate table instrument_order;')
+    #         self.curr.execute('truncate table user_order;')
+    #         self.curr.execute('truncate table shopping_craft;')
+    #         self.curr.execute('truncate table shoppingcraft_instrument;')
+    #         self.curr.execute('SET FOREIGN_KEY_CHECKS = 1;')
 
     def generate_random_instrument_id(self):
         now = datetime.now()

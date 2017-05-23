@@ -59,3 +59,48 @@ div.cart-btn{
     margin-top: 30px;
     margin-right: 30%;
 }
+label.price-label{
+    color: red;
+    float: right;
+    font-size: 24px;
+    margin-right: 20px;
+    margin-top: 8px;
+}
+div.show-instrument{
+margin-left: 20%;
+margin-top: 10%;
+}
+div.img-show-instrument{
+position: absolute;
+}
+div.img-show-instrument img{
+height: 400px;
+width: 400px;
+}
+div.show-instrument-right{
+    height: 400px;
+    margin-left: 500px;
+}
+div.name-show-instrument{
+
+}
+div.price-show-instrument{
+margin-top: 40px;
+margin-bottom: 40px;
+}
+div.price-show-instrument span{
+    color: red;
+    font-size: 24px;
+}
+div.weight-show-instrument{
+margin-top: 40px;
+margin-bottom: 40px;
+}
+div.desc-show-instrument{
+margin-top: 40px;
+margin-bottom: 40px;
+}
+div.transcost-show-instrument{
+margin-top: 40px;
+margin-bottom: 40px;
+}

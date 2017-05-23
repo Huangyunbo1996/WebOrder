@@ -18,6 +18,9 @@
                 <li><a href="{{url_for('main.allUser')}}">用户信息</a></li>
                 <li><a href="{{url_for('main.allOrder')}}">订单信息</a></li>
             </ul>
+            <ul class="nav navbar-nav navbar-right">
+        <li><a href="{{url_for('main.adminLogout')}}">退出</a></li>
+      </ul>
         </div>
     </div>
 </nav>
@@ -40,7 +43,8 @@
         {% for instrument in instruments %}
         <tr>
             <td style="width:15%;">
-            <img src="{{instrument[3]}}" height="100" width="100">
+            <a href="{{url_for('main.instrumentDetail',id=instrument[0])}}">
+            <img src="{{instrument[3]}}" height="100" width="100"></a>
             </td>
             <td>{{instrument[0]}}{%if instrument[4]%}(此商品已下架){% endif %}</th>
             <td>{{instrument[1]}}</th>

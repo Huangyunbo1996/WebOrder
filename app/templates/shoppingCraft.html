@@ -1,4 +1,8 @@
 {% extends "_base.html" %}
+{% block head %}
+{{super()}}
+<script src="{{ url_for('static',filename='little.js') }}"></script>
+{% endblock %}
 {% block title %}我的购物车{% endblock %}
 {% block content %}
 <h1 class="error-h1">我的购物车</h1>
@@ -8,26 +12,29 @@
 <form action="{{url_for('main.pay')}}" method="post">
 {% endif %}
 {% for instrument in instruments %}
-<div>
+<div id="instrument">
 <div class="cart">
 
     <a href="{{url_for('main.instrumentDetail',id=instrument.getId())}}"><img class="cart-image" src={{instrument.getImagePath()}}></a>
     <p class="desc-cart-p">{{instrument.getDescription()}}</p>
     <p>{{instrument.getName()}}</p>
-    <p class="price-cart-p">{{instrument.getPrice()}}</p>
+    <p id="price" class="price-cart-p">{{instrument.getPrice()}}</p>
 
 </div>
 <div style="float:right;margin-right:30%;">
 <a href="{{url_for('main.removeFromCart',id=instrument.getId())}}">移出购物车</a>
-<input type="checkbox" id="checkbox" name="{{'checkbox' + str(instruments.index(instrument))}}">
+<input class="judge-choose" type="checkbox" id="checkbox" name="{{'checkbox' + str(instruments.index(instrument))}}" onclick="change_price()">
 </div>
 </div>
 {% endfor %}
 {% if instruments != None %}
 <div class="cart-btn">
-<button type="submit" class="btn btn-primary btn-lg" style="float:right;">结算</button>
+<button type="submit" class="btn btn-primary btn-lg" style="float:right;">提交订单</button>
+<label id="total_price" class="price-label">0 元</label>
 </div>
 </form>
 {% endif %}
 </div>
+
+
 {% endblock %}
